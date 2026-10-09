@@ -5,12 +5,23 @@
 (function () {
   'use strict';
 
-  var CFG = window.SDN_CONFIG || {};
-  var API = CFG.API_URL || '';
-  if (!API) return;
+  // Alamat Apps Script dashboard. Satu sumber kebenaran untuk web publik.
+  var API = 'https://script.google.com/macros/s/AKfycby-6V90E8DnFMsTsl_93T6zDHW1LF0UPPFlTslCDMZ5QHXJGG9UQ8x6q9qpjc8aLk7qdg/exec';
+
+  // Mulai debug UI SEBELUM early-return apapun supaya ?debug=1 selalu kelihatan.
+  var isDebug = /[?&]debug=1/.test(location.search);
+  var dbg = null;
+  if (isDebug) {
+    dbg = document.createElement('div');
+    dbg.style.cssText = 'position:fixed;left:0;right:0;bottom:0;padding:.5rem 1rem;background:#111;color:#dfe;font:12px/1.4 monospace;z-index:9999;white-space:pre-wrap;max-height:40vh;overflow:auto';
+    (document.body || document.documentElement).appendChild(dbg);
+  }
+  function log(msg) { if (dbg) dbg.textContent += msg + '\n'; try { console.log(msg); } catch (_) {} }
+
+  log('[content.js] starting on ' + location.pathname);
 
   var slots = document.querySelectorAll('[data-dyn]');
-  if (!slots.length) return;
+  if (!slots.length) { log('[content.js] no data-dyn slots on this page, nothing to do'); return; }
 
   var CACHE_KEY = 'sdn.content.v1';
   var CACHE_MS = 20 * 1000;
@@ -126,16 +137,6 @@
       slot.querySelectorAll('[data-reveal]').forEach(function (el) { el.classList.add('is-visible'); });
     });
   }
-
-  // --- diagnostic banner (ketika ?debug=1 di URL) ---
-  var isDebug = /[?&]debug=1/.test(location.search);
-  var dbg = null;
-  if (isDebug) {
-    dbg = document.createElement('div');
-    dbg.style.cssText = 'position:fixed;left:0;right:0;bottom:0;padding:.5rem 1rem;background:#111;color:#dfe;font:12px/1.4 monospace;z-index:9999;white-space:pre-wrap;max-height:40vh;overflow:auto';
-    document.body.appendChild(dbg);
-  }
-  function log(msg) { if (dbg) dbg.textContent += msg + '\n'; }
 
   log('[content.js] API_URL = ' + API);
   log('[content.js] slots on this page: ' + Array.prototype.map.call(slots, function (s) { return s.getAttribute('data-dyn'); }).join(', '));
