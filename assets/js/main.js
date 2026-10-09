@@ -85,7 +85,10 @@
   }
 
   /* ---------- slider (geser, drag, tombol, titik) ---------- */
-  document.querySelectorAll('.slider').forEach(function (slider) {
+  // Bisa dipanggil ulang (content.js membuat slider baru dari data dashboard).
+  function initSlider(slider) {
+    if (slider.getAttribute('data-ready')) return;
+    slider.setAttribute('data-ready', '1');
     var track = slider.querySelector('.slider__track');
     var slides = Array.prototype.slice.call(track.children);
     var prev = slider.querySelector('.slider__btn--prev');
@@ -159,7 +162,9 @@
       if (e.key === 'ArrowRight') { e.preventDefault(); go(1); }
       if (e.key === 'ArrowLeft') { e.preventDefault(); go(-1); }
     });
-  });
+  }
+  document.querySelectorAll('.slider').forEach(initSlider);
+  window.SDN_initSlider = initSlider;
 
   /* ---------- lightbox ---------- */
   // Collect eligible lightbox nodes at open time so dynamically injected ones

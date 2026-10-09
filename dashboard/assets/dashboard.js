@@ -201,21 +201,42 @@
     saving: false,
   };
 
-  function isEmptyDb() {
+  // Seed rows whose id isn't in the sheet yet (brosur: only when no brosur exists).
+  function missingSeed() {
+    const seed = window.SDN_SEED || {};
     const c = state.content || {};
-    return (c.pengumuman || []).length === 0 && (c.video || []).length === 0 && !(c.brosur_ppdb && c.brosur_ppdb[0] && c.brosur_ppdb[0].foto);
+    const out = {};
+    for (const table of Object.keys(seed)) {
+      const have = c[table] || [];
+      if (table === 'brosur_ppdb') {
+        if (!have.some((r) => r.foto)) out[table] = seed[table];
+        continue;
+      }
+      const ids = new Set(have.map((r) => String(r.id)));
+      const add = seed[table].filter((r) => !ids.has(String(r.id)));
+      if (add.length) out[table] = add;
+    }
+    return out;
   }
+  const missingCount = () => Object.values(missingSeed()).reduce((n, l) => n + l.length, 0);
 
   async function importSeed() {
-    if (!confirm('Impor data awal (2 pengumuman, 12 video, brosur PPDB) ke database? Konten bisa diubah atau dihapus kapan saja setelahnya.')) return;
+    const add = missingSeed();
+    const lines = Object.entries(add).map(([t, l]) => `• ${t.replace(/_/g, ' ')}: ${l.length}`).join('\n');
+    if (!lines) return toast('Semua data awal sudah ada');
+    if (!confirm('Tambahkan data awal yang belum ada di Google Sheet?\n\n' + lines + '\n\nData yang sudah ada tidak diubah atau dihapus.')) return;
     try {
-      const seed = window.SDN_SEED;
-      for (const table of Object.keys(seed)) {
-        const rows = seed[table].map((r, i) => Object.assign({ order: i + 1 }, r));
-        await apiPost('save', { table, rows });
+      for (const table of Object.keys(add)) {
+        const existing = table === 'brosur_ppdb' ? [] : (state.content[table] || []);
+        const rows = existing.concat(add[table]).map((r, i) => Object.assign({}, r, { order: i + 1 }));
+        toast('Mengimpor ' + table.replace(/_/g, ' ') + '…');
+        const res = await apiPost('save', { table, rows });
+        if (typeof res.saved !== 'number') throw new Error('Apps Script tidak menjawab seperti biasa');
+        state.content[table] = rows;
       }
+      await refreshFromServer();
       toast('Data awal berhasil diimpor');
-      await load();
+      renderShell();
     } catch (e) {
       toast('Impor gagal: ' + e.message, 'err');
     }
@@ -370,7 +391,7 @@
       h('div', { class: 'page-head' },
         h('div', null, h('h1', null, 'Dashboard'), h('p', null, 'Ringkasan konten yang sedang tampil di website.')),
         h('div', { class: 'page-head__actions' },
-          isEmptyDb() && window.SDN_SEED ? h('button', { class: 'btn', onClick: importSeed }, '⬇ Impor data awal') : null,
+          window.SDN_SEED && missingCount() ? h('button', { class: 'btn', onClick: importSeed }, `⬇ Impor data awal (${missingCount()} belum ada)`) : null,
           h('a', { class: 'btn btn--ghost', href: '/', target: '_blank', rel: 'noopener' }, 'Buka website'),
         ),
       ),
@@ -438,7 +459,7 @@
     const content = h('div');
     if (!rows.length) content.append(h('div', { class: 'empty' }, 'Belum ada data. Klik tombol “+ Tambah” untuk membuat yang pertama.'));
     sections.forEach((grp) => {
-      if (grp.title) content.append(h('h3', { style: { marginTop: '1.5rem', marginBottom: '.75rem' } }, grp.title, h('span', { style: { color: '#999', fontWeight: 400, marginLeft: '.5rem' } }, grp.rows.length + ' orang')));
+      if (grp.title) content.append(h('h3', { style: { marginTop: '1.5rem', marginBottom: '.75rem' } }, grp.title, h('span', { style: { color: '#999', fontWeight: 400, marginLeft: '.5rem' } }, grp.rows.length + (sec.key === 'guru' ? ' orang' : ' foto'))));
       const ul = h('ul', { class: 'items' });
       grp.rows.forEach((r) => ul.append(renderItem(sec, r)));
       enableDrag(ul, sec, grp.rows);

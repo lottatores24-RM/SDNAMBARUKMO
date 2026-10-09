@@ -13,7 +13,7 @@
 <link rel="icon" href="assets/img/logo-sd-2.webp" type="image/webp">
 <link rel="preload" href="assets/fonts/acme-400.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/css/style.css?v=15bf00f9">
-<script src="assets/js/content.js?v=959e7038" defer></script>
+<script src="assets/js/content.js?v=b088f55f" defer></script>
 <style>@media (max-width:767px){[style*="assets/img/ganti-bg-sdn.webp"]{background-image:url(assets/img/ganti-bg-sdn-640.webp)!important}}</style>
 <script>document.documentElement.classList.add('js')</script>
 </head>
@@ -74,7 +74,7 @@
       <p class="d7">Sarana belajar yang nyaman dan bersih untuk mendukung kegiatan siswa setiap hari.</p>
     </header>
     <nav class="chips" aria-label="Lompat ke fasilitas" data-reveal>
-      <a href="#ruang-kelas">Ruang Kelas</a><a href="#ruang-guru">Ruang Kepala Sekolah &amp; Guru</a><a href="#fasilitas-lain">Masjid</a><a href="#fasilitas-lain">Ruang TIK</a><a href="#fasilitas-lain">Perpustakaan</a><a href="#fasilitas-lain">Toilet</a>
+      <a href="#ruang-kelas">Ruang Kelas</a><a href="#ruang-guru">Ruang Kepala Sekolah &amp; Guru</a><a href="#fasilitas-lain">Fasilitas Tambahan</a>
     </nav>
   </div>
 </section>
@@ -82,7 +82,7 @@
   <div class="container">
     <header class="section-head" data-reveal><p class="eyebrow">Ruang Belajar</p><h2 class="d2" id="ruang-kelas"><b>Ruang Kelas</b></h2></header>
   </div>
-  <div class="slider slider--rooms" data-reveal>
+  <div class="slider slider--rooms" data-dyn="fasilitas-kelas" data-reveal>
     <div class="slider__track" tabindex="0" aria-label="Ruang Kelas: geser untuk melihat foto lain">
         <div class="slide"><button type="button" class="ph zoomable " data-lightbox="ruang-kelas" data-full="assets/img/kls.webp" aria-label="Perbesar foto: Ruang kelas SD Negeri Ambarukmo 1"><img src="assets/img/kls.webp" srcset="assets/img/kls-640.webp 640w, assets/img/kls.webp 1200w" sizes="(max-width: 767px) 82vw, 490px" width="1200" height="553" alt="Ruang kelas SD Negeri Ambarukmo 1" loading="lazy" decoding="async"></button></div>
         <div class="slide"><button type="button" class="ph zoomable " data-lightbox="ruang-kelas" data-full="assets/img/kls2.webp" aria-label="Perbesar foto: Ruang kelas SD Negeri Ambarukmo 2"><img src="assets/img/kls2.webp" srcset="assets/img/kls2-640.webp 640w, assets/img/kls2.webp 1200w" sizes="(max-width: 767px) 82vw, 490px" width="1200" height="553" alt="Ruang kelas SD Negeri Ambarukmo 2" loading="lazy" decoding="async"></button></div>
@@ -102,7 +102,7 @@
       <p class="eyebrow">Ruang Kerja</p>
       <h2 class="d2" id="ruang-guru"><b>Ruang Kepala Sekolah &amp; Guru</b></h2>
     </header>
-    <div class="mosaic">
+    <div class="mosaic" data-dyn="fasilitas-guru">
       <div class="mosaic__item" data-reveal style="--delay:0ms"><button type="button" class="ph zoomable " data-lightbox="ruang-guru" data-full="assets/img/gr1.webp" aria-label="Perbesar foto: Ruang kepala sekolah dan guru 1"><img src="assets/img/gr1.webp" srcset="assets/img/gr1-640.webp 640w, assets/img/gr1.webp 1200w" sizes="(max-width: 767px) 50vw, 270px" width="1200" height="900" alt="Ruang kepala sekolah dan guru 1" loading="lazy" decoding="async"></button></div>
       <div class="mosaic__item" data-reveal style="--delay:80ms"><button type="button" class="ph zoomable " data-lightbox="ruang-guru" data-full="assets/img/gr2.webp" aria-label="Perbesar foto: Ruang kepala sekolah dan guru 2"><img src="assets/img/gr2.webp" srcset="assets/img/gr2-640.webp 640w, assets/img/gr2.webp 1200w" sizes="(max-width: 767px) 50vw, 270px" width="1200" height="1600" alt="Ruang kepala sekolah dan guru 2" loading="lazy" decoding="async"></button></div>
       <div class="mosaic__item" data-reveal style="--delay:160ms"><button type="button" class="ph zoomable " data-lightbox="ruang-guru" data-full="assets/img/gr3.webp" aria-label="Perbesar foto: Ruang kepala sekolah dan guru 3"><img src="assets/img/gr3.webp" srcset="assets/img/gr3-640.webp 640w, assets/img/gr3.webp 1200w" sizes="(max-width: 767px) 50vw, 270px" width="1200" height="1600" alt="Ruang kepala sekolah dan guru 3" loading="lazy" decoding="async"></button></div>
@@ -116,7 +116,7 @@
       <p class="eyebrow">Penunjang</p>
       <h2 class="d2" id="fasilitas-lain"><b>Fasilitas Tambahan</b></h2>
     </header>
-    <div class="facility-grid">
+    <div class="facility-grid" data-dyn="fasilitas-lain">
       <figure class="facility" data-reveal style="--delay:0ms">
         <button type="button" class="ph zoomable facility__img" data-lightbox="fasilitas" data-full="assets/img/msjd.webp" aria-label="Perbesar foto: Masjid SD Negeri Ambarukmo"><img src="assets/img/msjd.webp" width="595" height="446" alt="Masjid SD Negeri Ambarukmo" loading="lazy" decoding="async"></button>
         <figcaption class="d7"><b>Masjid</b></figcaption>
@@ -169,6 +169,6 @@
     <p class="copyright d7">© 2024 Riki Hamdan Sucipto - Informatika | Universitas Respati Yogyakarta</p>
   </div>
 </footer>
-<script src="assets/js/main.js?v=1842d892" defer></script>
+<script src="assets/js/main.js?v=d252f900" defer></script>
 </body>
 </html>

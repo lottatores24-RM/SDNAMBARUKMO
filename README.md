@@ -47,6 +47,17 @@ lalu buka `http://localhost:8000`. Bisa juga pakai ekstensi **Live Server** di V
 Upload **semua isi folder** (semua file `.html` dan folder `assets`) ke `public_html` (cPanel),
 atau hubungkan repo ini ke GitHub Pages / Netlify / Vercel. Tidak ada perintah build.
 
+## Dashboard admin
+
+Konten berikut diatur dari dashboard di `/dashboard/` (login pakai ADMIN_SECRET), tanpa mengedit HTML:
+pengumuman, guru & pegawai, ekstrakurikuler, kegiatan sekolah, fasilitas, album galeri, video kegiatan,
+dan brosur PPDB. Data disimpan di Google Sheet, foto di Google Drive, lewat Apps Script
+(lihat `apps-script/SETUP.md`). Halaman publik memuat data itu lewat `assets/js/content.js`; kalau
+dashboard belum berisi data atau tidak bisa dihubungi, isi HTML bawaan yang tampil.
+
+Tambahkan `?debug=1` di alamat halaman (misalnya `pengumuman.html?debug=1`) untuk melihat apa yang
+dimuat dari dashboard. Menu **Cek Koneksi** di dashboard mengetes jalur ke Apps Script.
+
 ## Cara mengedit
 
 - **Teks**: buka file `.html` halaman yang mau diubah, cari teksnya, lalu ganti.
