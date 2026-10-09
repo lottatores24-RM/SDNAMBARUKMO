@@ -462,6 +462,72 @@ html{scroll-padding-top:calc(var(--menu-h) + 2rem)}
 .photo-grid__img{aspect-ratio:4/3;border-radius:1.25rem;box-shadow:var(--shadow)}
 .video-feature{max-width:860px;margin:clamp(2rem,1.5rem + 2vw,3.5rem) auto 0}
 
+/* ---------- halaman galeri & hubungi kami ---------- */
+.stats--3{grid-template-columns:repeat(3,1fr)}
+@media (max-width:639px){.stats--3{grid-template-columns:1fr}}
+.album-grid{display:grid;gap:clamp(1rem,.75rem + 1vw,1.75rem);grid-template-columns:repeat(2,1fr)}
+@media (min-width:640px){.album-grid{grid-template-columns:repeat(3,1fr)}}
+@media (min-width:992px){.album-grid{grid-template-columns:repeat(4,1fr)}}
+.album{display:flex;flex-direction:column;gap:.75rem}
+.album__cover{position:relative;padding:0;border:0;cursor:zoom-in;width:100%;aspect-ratio:1/1;border-radius:1.25rem;overflow:hidden;background:rgba(27,31,10,.06);box-shadow:var(--shadow);transition:transform .35s var(--ease),box-shadow .35s var(--ease)}
+.album__cover img{width:100%;height:100%;object-fit:cover;transition:transform .6s var(--ease)}
+.album__cover:hover{transform:translateY(-4px);box-shadow:var(--shadow-hover)}
+.album__cover:hover img{transform:scale(1.06)}
+.album__count{position:absolute;left:.75rem;bottom:.75rem;padding:.3rem .7rem;border-radius:100px;background:rgba(27,31,10,.78);color:#fff;font-size:.85rem;font-weight:700}
+.album__title{font-family:var(--font-display);font-weight:700;font-size:clamp(1rem,.9rem + .3vw,1.2rem);line-height:1.25;color:var(--text);margin:0;text-align:center}
+
+.video-cards{display:grid;gap:clamp(.75rem,.5rem + 1vw,1.75rem);grid-template-columns:repeat(2,1fr)}
+@media (min-width:640px){.video-cards{grid-template-columns:repeat(2,1fr)}}
+@media (min-width:992px){.video-cards{grid-template-columns:repeat(3,1fr)}}
+.video-card{display:flex;flex-direction:column;gap:.6rem;background:#fff;border-radius:1.25rem;padding:.6rem;box-shadow:var(--shadow);transition:transform .35s var(--ease),box-shadow .35s var(--ease)}
+.video-card:hover{transform:translateY(-4px);box-shadow:var(--shadow-hover)}
+.video-card .yt{border-radius:1rem}
+.video-card__title{margin:0 .25rem .4rem;font-size:.9rem;line-height:1.3;color:var(--text);font-weight:700}
+@media (min-width:640px){.video-card{gap:1rem;padding:1rem;border-radius:1.5rem}.video-card__title{font-size:1rem;margin-bottom:.5rem}}
+
+/* hubungi kami */
+.contact-cards{display:grid;gap:clamp(.75rem,.5rem + 1vw,1.25rem);grid-template-columns:1fr}
+@media (min-width:640px){.contact-cards{grid-template-columns:repeat(2,1fr)}}
+@media (min-width:992px){.contact-cards{grid-template-columns:repeat(4,1fr)}}
+.contact-card{display:flex;flex-direction:column;gap:.5rem;padding:1.5rem;border-radius:1.5rem;background:#fff;color:var(--text);text-decoration:none;box-shadow:var(--shadow);border:1px solid rgba(35,35,35,.06);transition:transform .3s var(--ease),box-shadow .3s var(--ease)}
+.contact-card:hover{transform:translateY(-5px);box-shadow:var(--shadow-hover);color:var(--text)}
+.contact-card__icon{display:grid;place-items:center;width:2.75rem;height:2.75rem;border-radius:1rem;background:rgba(43,122,105,.1);color:var(--primary);margin-bottom:.5rem}
+.contact-card__icon svg{width:1.5rem;height:1.5rem}
+.contact-card__label{font-size:.9rem;letter-spacing:.08em;text-transform:uppercase;color:#4b5048}
+.contact-card__value{font-family:var(--font-display);font-size:1.15rem;line-height:1.3;color:var(--text)}
+.contact-card__action{margin-top:auto;display:inline-flex;align-items:center;gap:.4rem;color:var(--primary);font-weight:700;font-size:.95rem}
+.contact-card__action svg{width:1.1em;height:1.1em;transition:transform .25s var(--ease)}
+.contact-card:hover .contact-card__action svg{transform:translateX(4px)}
+.contact-card--primary{background:var(--primary);color:#fff}
+.contact-card--primary:hover{color:#fff}
+.contact-card--primary .contact-card__icon{background:rgba(255,255,255,.14);color:#fff}
+.contact-card--primary .contact-card__label,.contact-card--primary .contact-card__action{color:var(--mint)}
+.contact-card--primary .contact-card__value{color:#fff}
+
+.location{display:grid;gap:0;border-radius:var(--radius);overflow:hidden;background:#fff;box-shadow:var(--shadow)}
+@media (min-width:900px){.location{grid-template-columns:1.4fr 1fr}}
+.location__map{min-height:320px}
+.location__map iframe{width:100%;height:100%;min-height:320px;border:0;display:block}
+.location__card{display:flex;flex-direction:column;align-items:flex-start;gap:1rem;padding:clamp(1.75rem,1.25rem + 2vw,2.75rem);background:var(--sage)}
+.location__card p{color:#3b3f38;line-height:1.6}
+
+.social-cards{display:grid;gap:clamp(.75rem,.5rem + 1vw,1.25rem);grid-template-columns:1fr}
+@media (min-width:640px){.social-cards{grid-template-columns:repeat(2,1fr)}}
+@media (min-width:1100px){.social-cards{grid-template-columns:repeat(4,1fr)}}
+.social-card{position:relative;display:flex;align-items:center;gap:1rem;padding:1.25rem 1.5rem;border-radius:1.5rem;background:#fff;color:var(--text);text-decoration:none;box-shadow:var(--shadow);overflow:hidden;isolation:isolate;transition:transform .3s var(--ease),box-shadow .3s var(--ease),color .3s}
+.social-card::before{content:"";position:absolute;inset:0;background:var(--c);transform:translateY(100%);transition:transform .3s var(--ease);z-index:-1}
+.social-card:hover{color:#fff;transform:translateY(-4px);box-shadow:var(--shadow-hover)}
+.social-card:hover::before{transform:translateY(0)}
+.social-card__icon{display:grid;place-items:center;width:3rem;height:3rem;border-radius:1rem;background:var(--c);color:#fff;flex:none;transition:background-color .3s}
+.social-card__icon svg{width:1.6rem;height:1.6rem;fill:currentColor}
+.social-card:hover .social-card__icon{background:rgba(255,255,255,.18)}
+.social-card b{display:block;font-family:var(--font-display);font-size:1.1rem;line-height:1.2}
+.social-card small{display:block;color:#4b5048;font-size:.9rem;margin-top:.15rem;transition:color .3s}
+.social-card:hover small{color:rgba(255,255,255,.85)}
+.social-card__go{margin-left:auto;color:var(--primary);transition:color .3s,transform .25s var(--ease)}
+.social-card__go svg{width:1.2em;height:1.2em}
+.social-card:hover .social-card__go{color:#fff;transform:translateX(4px)}
+
 /* ---------- lightbox ---------- */
 .lightbox{position:fixed;inset:0;z-index:3000;display:flex;align-items:center;justify-content:center;background:rgba(20,24,18,.94);opacity:0;visibility:hidden;transition:opacity .3s var(--ease),visibility .3s}
 .lightbox.is-open{opacity:1;visibility:visible}

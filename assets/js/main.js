@@ -198,7 +198,7 @@
       var pre = new Image();
       pre.onload = pre.onerror = function () {
         img.src = src;
-        img.alt = el.querySelector('img') ? el.querySelector('img').alt : '';
+        img.alt = el.getAttribute('data-alt') || (el.querySelector('img') ? el.querySelector('img').alt : '');
         img.classList.remove('is-loading');
       };
       pre.src = src;
