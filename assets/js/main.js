@@ -254,20 +254,35 @@
   }
 
   /* ---------- video YouTube: iframe baru dimuat saat diklik ---------- */
-  document.querySelectorAll('.yt').forEach(function (btn) {
-    btn.addEventListener('click', function () {
-      var id = btn.getAttribute('data-id');
-      var frame = document.createElement('iframe');
-      frame.src = 'https://www.youtube-nocookie.com/embed/' + id + '?autoplay=1&rel=0';
-      frame.title = btn.getAttribute('aria-label') || 'Video YouTube';
-      frame.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
-      frame.allowFullscreen = true;
-      var holder = document.createElement('div');
-      holder.className = 'yt';
-      holder.appendChild(frame);
-      btn.replaceWith(holder);
-      frame.focus();
-    });
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest('button.yt');
+    if (!btn) return;
+    e.preventDefault();
+    var id = btn.getAttribute('data-id');
+    var title = btn.getAttribute('aria-label') || 'Video YouTube';
+    var holder = document.createElement('div');
+    holder.className = 'yt';
+    var frame = document.createElement('iframe');
+    frame.src = 'https://www.youtube-nocookie.com/embed/' + id + '?autoplay=1&rel=0&playsinline=1';
+    frame.title = title;
+    frame.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';
+    frame.setAttribute('allowfullscreen', '');
+    frame.referrerPolicy = 'strict-origin-when-cross-origin';
+    frame.loading = 'eager';
+    var fallback = document.createElement('a');
+    fallback.className = 'yt__fallback';
+    fallback.href = 'https://www.youtube.com/watch?v=' + id;
+    fallback.target = '_blank';
+    fallback.rel = 'noopener';
+    fallback.textContent = 'Buka di YouTube';
+    fallback.hidden = true;
+    holder.append(frame, fallback);
+    btn.replaceWith(holder);
+    try { frame.focus(); } catch (_) {}
+    // if the iframe hasn't loaded in a few seconds (ad-blocker, offline), show a link to YouTube
+    var loaded = false;
+    frame.addEventListener('load', function () { loaded = true; });
+    setTimeout(function () { if (!loaded) fallback.hidden = false; }, 4000);
   });
 
   doc.classList.add('js-ready');
