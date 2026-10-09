@@ -127,14 +127,39 @@
     });
   }
 
+  // --- diagnostic banner (ketika ?debug=1 di URL) ---
+  var isDebug = /[?&]debug=1/.test(location.search);
+  var dbg = null;
+  if (isDebug) {
+    dbg = document.createElement('div');
+    dbg.style.cssText = 'position:fixed;left:0;right:0;bottom:0;padding:.5rem 1rem;background:#111;color:#dfe;font:12px/1.4 monospace;z-index:9999;white-space:pre-wrap;max-height:40vh;overflow:auto';
+    document.body.appendChild(dbg);
+  }
+  function log(msg) { if (dbg) dbg.textContent += msg + '\n'; }
+
+  log('[content.js] API_URL = ' + API);
+  log('[content.js] slots on this page: ' + Array.prototype.map.call(slots, function (s) { return s.getAttribute('data-dyn'); }).join(', '));
+
   // Paint from cache immediately for snappy render, then refresh from network.
   var cached = readCache();
-  if (cached) paint(cached);
+  if (cached) { log('[content.js] cache hit, paint from cache'); paint(cached); }
 
   var url = API + (API.indexOf('?') >= 0 ? '&' : '?') + 'action=content';
-  fetch(url, { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (data) {
-    if (!data || data.error) return;
+  log('[content.js] fetching ' + url);
+  var t0 = Date.now();
+  fetch(url, { cache: 'no-store' }).then(function (r) {
+    log('[content.js] response status=' + r.status + ' after ' + (Date.now() - t0) + 'ms');
+    return r.text();
+  }).then(function (txt) {
+    log('[content.js] body size=' + txt.length + ' chars, head=' + txt.slice(0, 200));
+    var data;
+    try { data = JSON.parse(txt); } catch (e) { log('[content.js] JSON parse error: ' + e.message); return; }
+    if (!data) { log('[content.js] data is null'); return; }
+    if (data.error) { log('[content.js] API error: ' + data.error); return; }
+    log('[content.js] got rows: pengumuman=' + (data.pengumuman || []).length + ' video=' + (data.video || []).length + ' brosur=' + ((data.brosur_ppdb || [])[0] && (data.brosur_ppdb || [])[0].foto ? 'yes' : 'no'));
     writeCache(data);
     paint(data);
-  }).catch(function () { /* keep static */ });
+  }).catch(function (e) {
+    log('[content.js] fetch failed: ' + e.message);
+  });
 })();
