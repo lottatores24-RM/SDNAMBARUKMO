@@ -55,7 +55,7 @@ button{font:inherit;color:inherit}
 @media (min-width:768px){.container{padding-inline:24px}}
 @media (min-width:1400px){.container{padding-inline:12px}}
 
-.section{position:relative;padding-block:clamp(3.5rem,2.5rem + 3vw,6rem);background:var(--bg-color,var(--light)) var(--bg-image,none) center/cover no-repeat;isolation:isolate}
+.section{position:relative;padding-block:clamp(3.5rem,2.5rem + 3vw,6rem);background:var(--bg-color,var(--light)) center/cover no-repeat;isolation:isolate}
 .section::before{content:"";position:absolute;inset:0;z-index:-1;background:var(--overlay,transparent);opacity:var(--overlay-opacity,1);pointer-events:none}
 .section--tight{padding-block:clamp(2.5rem,2rem + 2vw,5rem)}
 .section--after-menu{padding-top:calc(var(--menu-h) + 2rem + clamp(1.5rem,1rem + 2vw,3rem))}
@@ -137,7 +137,7 @@ button{font:inherit;color:inherit}
 button.ph{padding:0;border:0;width:100%;display:block}
 
 /* ---------- hero (header05) ---------- */
-.hero{position:relative;padding:calc(var(--menu-h) + 1rem + clamp(1.5rem,1rem + 2vw,2.5rem)) 0 clamp(1.5rem,1rem + 1vw,3rem);background:var(--gray) var(--bg-image) center/cover no-repeat;isolation:isolate;text-align:center}
+.hero{position:relative;padding:calc(var(--menu-h) + 1rem + clamp(1.5rem,1rem + 2vw,2.5rem)) 0 clamp(1.5rem,1rem + 1vw,3rem);background:var(--gray) center/cover no-repeat;isolation:isolate;text-align:center}
 .hero::before{content:"";position:absolute;inset:0;z-index:-2;background:var(--gray);opacity:.7}
 .hero::after{content:"";position:absolute;left:0;right:0;bottom:0;height:30%;z-index:-1;background:var(--light)}
 .hero h1{color:#000;margin-bottom:clamp(2rem,1.5rem + 1.5vw,3rem)}
@@ -191,7 +191,7 @@ button.ph{padding:0;border:0;width:100%;display:block}
 .social-list svg{width:48px;height:48px;flex:none;fill:#000}
 
 /* ---------- footer ---------- */
-.site-footer{position:relative;padding-block:2rem;text-align:center;background:var(--light) var(--bg-image) center/cover;isolation:isolate}
+.site-footer{position:relative;padding-block:2rem;text-align:center;background:var(--light) center/cover no-repeat;isolation:isolate}
 .site-footer::before{content:"";position:absolute;inset:0;z-index:-1;background:var(--light);opacity:.8}
 .site-footer p{color:#000}
 .site-footer .small{font-size:.95rem;margin-top:.35rem}
@@ -290,8 +290,8 @@ button.ph{padding:0;border:0;width:100%;display:block}
 @media (max-width:767px){.lightbox__stage{padding:4rem .75rem 3.5rem}.lightbox__prev,.lightbox__next{top:auto;bottom:.5rem;transform:none}.lightbox__count{bottom:1.5rem}}
 body.no-scroll{overflow:hidden}
 
-/* foto latar versi kecil untuk layar HP */
-@media (max-width:767px){.section,.hero,.site-footer{background-image:var(--bg-image-sm,var(--bg-image,none))}}
+/* foto latar diam saat di-scroll (parallax), hanya di layar besar */
+@media (min-width:992px) and (hover:hover){.parallax{background-attachment:fixed}}
 
 /* ---------- animasi muncul ---------- */
 .js [data-reveal]{opacity:0;transform:translateY(24px);transition:opacity .7s var(--ease),transform .7s var(--ease);transition-delay:var(--delay,0ms)}
