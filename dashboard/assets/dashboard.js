@@ -196,6 +196,26 @@
     saving: false,
   };
 
+  function isEmptyDb() {
+    const c = state.content || {};
+    return (c.pengumuman || []).length === 0 && (c.video || []).length === 0 && !(c.brosur_ppdb && c.brosur_ppdb[0] && c.brosur_ppdb[0].foto);
+  }
+
+  async function importSeed() {
+    if (!confirm('Impor data awal (2 pengumuman, 12 video, brosur PPDB) ke database? Konten bisa diubah atau dihapus kapan saja setelahnya.')) return;
+    try {
+      const seed = window.SDN_SEED;
+      for (const table of Object.keys(seed)) {
+        const rows = seed[table].map((r, i) => Object.assign({ order: i + 1 }, r));
+        await apiPost('save', { table, rows });
+      }
+      toast('Data awal berhasil diimpor');
+      await load();
+    } catch (e) {
+      toast('Impor gagal: ' + e.message, 'err');
+    }
+  }
+
   /* ---------- bootstrap ---------- */
   function start() {
     if (!API) return renderConfigMissing();
@@ -326,7 +346,10 @@
     return h('div', null,
       h('div', { class: 'page-head' },
         h('div', null, h('h1', null, 'Dashboard'), h('p', null, 'Ringkasan konten yang sedang tampil di website.')),
-        h('div', { class: 'page-head__actions' }, h('a', { class: 'btn btn--ghost', href: '/', target: '_blank', rel: 'noopener' }, 'Buka website')),
+        h('div', { class: 'page-head__actions' },
+          isEmptyDb() && window.SDN_SEED ? h('button', { class: 'btn', onClick: importSeed }, '⬇ Impor data awal') : null,
+          h('a', { class: 'btn btn--ghost', href: '/', target: '_blank', rel: 'noopener' }, 'Buka website'),
+        ),
       ),
       h('div', { class: 'overview' }, ...stats.map(([k, lbl, n]) => h('button', {
         class: 'stat',
