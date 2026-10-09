@@ -162,13 +162,15 @@
   });
 
   /* ---------- lightbox ---------- */
-  var groups = {};
-  document.querySelectorAll('[data-lightbox]').forEach(function (el) {
-    var g = el.getAttribute('data-lightbox');
-    (groups[g] = groups[g] || []).push(el);
-  });
-
-  if (Object.keys(groups).length) {
+  // Collect eligible lightbox nodes at open time so dynamically injected ones
+  // (from content.js) are included too.
+  function collectGroup(name) {
+    var out = [];
+    document.querySelectorAll('[data-lightbox="' + name + '"]').forEach(function (el) { out.push(el); });
+    return out;
+  }
+  var hasAny = !!document.querySelector('[data-lightbox]');
+  if (hasAny) {
     var icon = function (d) {
       return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="' + d + '"/></svg>';
     };
@@ -209,9 +211,9 @@
       if (list.length > 1) new Image().src = list[(index + 1) % list.length].getAttribute('data-full');
     };
     var open = function (group, el) {
-      list = groups[group];
+      list = collectGroup(group);
       opener = el;
-      show(list.indexOf(el));
+      show(Math.max(0, list.indexOf(el)));
       box.classList.add('is-open');
       document.body.classList.add('no-scroll');
       box.querySelector('.lightbox__close').focus();
@@ -222,10 +224,11 @@
       if (opener) opener.focus();
     };
 
-    Object.keys(groups).forEach(function (g) {
-      groups[g].forEach(function (el) {
-        el.addEventListener('click', function (e) { e.preventDefault(); open(g, el); });
-      });
+    document.addEventListener('click', function (e) {
+      var el = e.target.closest('[data-lightbox]');
+      if (!el || !document.body.contains(el)) return;
+      e.preventDefault();
+      open(el.getAttribute('data-lightbox'), el);
     });
     box.querySelector('.lightbox__close').addEventListener('click', close);
     box.querySelector('.lightbox__prev').addEventListener('click', function () { show(index - 1); });
