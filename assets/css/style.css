@@ -343,6 +343,84 @@ button.ph{padding:0;border:0;width:100%;display:block}
 .staff-card__name{font-size:clamp(1.02rem,.95rem + .3vw,1.2rem);line-height:1.25;margin:0;color:var(--text)}
 @media (max-width:575px){.staff-card .pill{font-size:.85rem;padding:.25rem .7rem}}
 
+/* ---------- halaman informasi (pendaftaran, pengumuman, fasilitas) ---------- */
+.btn--light{background:#fff;border-color:#fff;color:var(--primary-dark)}
+.btn--light:hover{background:var(--mint);border-color:var(--mint);color:var(--primary-dark)}
+.btn--ghost{background:transparent;border-color:rgba(255,255,255,.55);color:#fff}
+.btn--ghost:hover{background:rgba(255,255,255,.12);border-color:#fff;color:#fff}
+.btn svg{flex:none}
+
+/* pendaftaran */
+.enroll{display:grid;gap:clamp(1.5rem,1rem + 2vw,2.5rem);align-items:start}
+@media (min-width:992px){.enroll{grid-template-columns:1fr 1fr}}
+.enroll__card{padding:clamp(1.75rem,1.25rem + 2.5vw,3.25rem);border-radius:var(--radius);background:var(--primary);color:#fff;box-shadow:var(--shadow)}
+.enroll__card .eyebrow{color:var(--mint)}
+.enroll__card h3{line-height:1.25}
+.enroll__card>p.d7{margin-top:1rem;opacity:.92}
+.enroll__actions{display:flex;flex-wrap:wrap;gap:.75rem;margin-top:1.75rem}
+.enroll__contacts{list-style:none;margin:1.75rem 0 0;padding:1.25rem 0 0;display:grid;gap:.6rem;border-top:1px solid rgba(255,255,255,.22)}
+.enroll__contacts li{display:flex;align-items:center;gap:.7rem}
+.enroll__contacts svg{width:1.2em;height:1.2em;flex:none;color:var(--mint)}
+.enroll__contacts a{color:#fff;text-underline-offset:3px}
+.poster{margin:0}
+.poster__img{box-shadow:var(--shadow);border-radius:1.5rem}
+.poster__img img{height:auto;aspect-ratio:1280/988}
+.poster figcaption{margin-top:.75rem;text-align:center;font-size:.95rem;color:#4b5048}
+.steps{list-style:none;margin:0;padding:0;display:grid;gap:1rem;grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));counter-reset:none}
+.step{position:relative;padding:1.5rem 1.25rem;border-radius:1.5rem;background:var(--light);border:1px solid rgba(35,35,35,.06)}
+.step .num{margin-bottom:1rem}
+.step h3{margin-bottom:.35rem;line-height:1.3}
+.step p{color:#4b5048;line-height:1.5}
+.step a{font-weight:700;word-break:break-word}
+@media (max-width:639px){
+  .steps{gap:0}
+  .step{display:grid;grid-template-columns:2.5rem 1fr;column-gap:1rem;padding:0 0 1.25rem;background:none;border:0}
+  .step .num{grid-row:1/3;width:2.5rem;height:2.5rem;font-size:.95rem;margin:0}
+  .step:not(:last-child)::before{content:"";position:absolute;left:1.25rem;top:2.75rem;bottom:.25rem;width:2px;background:rgba(43,122,105,.25)}
+  .step h3{padding-top:.35rem}
+}
+@media (min-width:1100px){.step:not(:last-child)::after{content:"";position:absolute;top:2.95rem;right:-.85rem;width:.7rem;height:2px;background:var(--primary);opacity:.35}}
+.benefits{list-style:none;margin:0;padding:0;display:grid;gap:1rem;grid-template-columns:1fr}
+@media (min-width:640px){.benefits{grid-template-columns:repeat(2,1fr)}}
+@media (min-width:992px){.benefits{grid-template-columns:repeat(3,1fr)}}
+.benefit{display:flex;gap:1rem;align-items:flex-start;padding:1.4rem 1.5rem;border-radius:1.5rem;background:#fff;box-shadow:var(--shadow);transition:transform .3s var(--ease),box-shadow .3s var(--ease)}
+.benefit:hover{transform:translateY(-4px);box-shadow:var(--shadow-hover)}
+.benefit__icon{flex:none;display:grid;place-items:center;width:3rem;height:3rem;border-radius:1rem;background:rgba(43,122,105,.1);color:var(--primary)}
+.benefit__icon svg{width:1.5rem;height:1.5rem}
+.benefit h3{line-height:1.3}
+.benefit p{margin-top:.25rem;color:#4b5048}
+
+/* pengumuman */
+.news-list{display:grid;gap:clamp(1.25rem,1rem + 1vw,2rem);max-width:1040px;margin-inline:auto}
+.news{display:grid;border-radius:var(--radius);overflow:hidden;background:#fff;box-shadow:var(--shadow)}
+@media (min-width:768px){.news{grid-template-columns:minmax(240px,340px) 1fr}}
+.news__img{border-radius:0;aspect-ratio:1/1;align-self:stretch}
+@media (min-width:768px){.news__img{aspect-ratio:auto;min-height:100%}}
+.news__body{display:flex;flex-direction:column;align-items:flex-start;gap:.85rem;padding:clamp(1.5rem,1.1rem + 2vw,2.75rem)}
+.news__body h3{line-height:1.2;color:var(--text)}
+.news__body p{color:#3b3f38}
+.news__list{margin:0;padding-left:1.2em;display:grid;gap:.25rem;color:#3b3f38}
+.news__sign{font-weight:700;color:var(--primary)!important}
+.follow-note{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:1rem 1.5rem;max-width:1040px;margin:clamp(2rem,1.5rem + 2vw,3rem) auto 0;padding:1.5rem;border-radius:1.5rem;background:var(--sage);text-align:center}
+.follow-note .btn svg{fill:currentColor}
+
+/* fasilitas */
+.chips{display:flex;flex-wrap:wrap;justify-content:center;gap:.6rem;max-width:860px;margin:0 auto}
+.chips a{padding:.55rem 1.1rem;border-radius:100px;background:#fff;color:var(--text);text-decoration:none;box-shadow:0 2px 10px rgba(27,31,10,.06);border:1px solid rgba(35,35,35,.08);transition:background-color .25s,color .25s,transform .25s var(--ease)}
+.chips a:hover{background:var(--primary);color:#fff;transform:translateY(-2px)}
+.slider--rooms .slide{--slide-w:clamp(260px,40vw,560px)}
+.slider--rooms .slide .ph{height:auto;aspect-ratio:1200/553}
+html{scroll-padding-top:calc(var(--menu-h) + 2rem)}
+.mosaic{display:grid;gap:clamp(.75rem,.5rem + 1vw,1.25rem);grid-template-columns:repeat(2,1fr);max-width:1100px;margin-inline:auto}
+@media (min-width:768px){.mosaic{grid-template-columns:repeat(4,1fr)}}
+.mosaic__item .ph{aspect-ratio:3/4}
+.facility-grid{display:grid;gap:clamp(.75rem,.5rem + 1vw,1.5rem);grid-template-columns:repeat(2,1fr)}
+@media (min-width:992px){.facility-grid{grid-template-columns:repeat(4,1fr)}}
+.facility{margin:0;border-radius:1.5rem;overflow:hidden;background:#fff;box-shadow:var(--shadow);transition:transform .35s var(--ease),box-shadow .35s var(--ease)}
+.facility:hover{transform:translateY(-6px);box-shadow:var(--shadow-hover)}
+.facility__img{border-radius:0;aspect-ratio:4/3}
+.facility figcaption{padding:.9rem 1rem 1.1rem;text-align:center}
+
 /* ---------- lightbox ---------- */
 .lightbox{position:fixed;inset:0;z-index:3000;display:flex;align-items:center;justify-content:center;background:rgba(20,24,18,.94);opacity:0;visibility:hidden;transition:opacity .3s var(--ease),visibility .3s}
 .lightbox.is-open{opacity:1;visibility:visible}
