@@ -271,6 +271,78 @@ button.ph{padding:0;border:0;width:100%;display:block}
 .agenda-img{max-width:966px;margin-inline:auto;box-shadow:var(--shadow)}
 .agenda-caption{margin-top:1.5rem;text-align:center}
 
+/* ---------- halaman profil (visi-misi & guru-pegawai) ---------- */
+.eyebrow{font-size:.95rem;letter-spacing:.16em;text-transform:uppercase;color:var(--primary);margin-bottom:.6rem}
+.page-intro{max-width:720px;margin:0 auto clamp(2.5rem,2rem + 2vw,4rem);text-align:center}
+.page-intro h2{color:var(--text)}
+.page-intro .d7{margin-top:1rem;color:#4b5048}
+.section-head{max-width:720px;margin:0 auto clamp(2rem,1.5rem + 2vw,3.5rem);text-align:center}
+.section-head .d7{margin-top:1rem}
+.section-head--light .eyebrow{color:var(--mint)}
+.section-head--light h2,.section-head--light .d7{color:#fff}
+.num{flex:none;display:grid;place-items:center;width:3rem;height:3rem;border-radius:50%;background:var(--primary);color:#fff;font-family:var(--font-display);font-weight:700;font-size:1.05rem;letter-spacing:.02em}
+.pill{display:inline-block;padding:.3rem .85rem;border-radius:100px;background:rgba(43,122,105,.1);color:var(--primary-dark);font-size:.95rem;line-height:1.3}
+
+/* visi */
+.vision{display:grid;gap:clamp(1.5rem,1rem + 2vw,2.5rem);align-items:stretch}
+@media (min-width:992px){.vision{grid-template-columns:1.25fr 1fr}}
+.vision__card{position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:center;padding:clamp(2rem,1.5rem + 3vw,4rem);border-radius:var(--radius);background:var(--primary);color:#fff;box-shadow:var(--shadow)}
+.vision__card::after{content:"\201C";position:absolute;right:-.05em;top:-.28em;font-family:var(--font-display);font-weight:700;font-size:clamp(12rem,8rem + 10vw,20rem);line-height:1;color:rgba(255,255,255,.08);pointer-events:none}
+.vision__card .eyebrow{color:var(--mint)}
+.vision__quote{margin:0 0 clamp(2rem,1.5rem + 2vw,3rem)}
+.vision__quote p{font-family:var(--font-display);font-weight:700;font-size:clamp(1.9rem,1.3rem + 2.2vw,3.1rem);line-height:1.15}
+.facts{list-style:none;padding:1.5rem 0 0;margin:0;display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;border-top:1px solid rgba(255,255,255,.22)}
+.facts b{display:block;white-space:nowrap;font-family:var(--font-display);font-size:clamp(1.4rem,1.1rem + 1vw,2rem);line-height:1.1}
+.facts span{display:block;margin-top:.3rem;font-size:.95rem;opacity:.85}
+.vision__img{min-height:clamp(320px,40vw,560px)}
+
+/* misi */
+.mission{display:grid;gap:clamp(1.5rem,1rem + 2vw,3rem);align-items:start}
+@media (min-width:992px){.mission{grid-template-columns:1fr 1.1fr}.mission__img{position:sticky;top:calc(var(--menu-h) + 2rem)}}
+.mission__img{aspect-ratio:4/3.4}
+.mission__list{list-style:none;margin:0;padding:0;display:grid;gap:1rem}
+.mission__item{display:flex;align-items:center;gap:1.25rem;padding:1.25rem 1.5rem;border-radius:1.5rem;background:var(--light);border:1px solid rgba(35,35,35,.06);transition:transform .3s var(--ease),box-shadow .3s var(--ease),background-color .3s}
+.mission__item:hover{transform:translateX(6px);background:#fff;box-shadow:var(--shadow)}
+
+/* tujuan */
+.goal-list{list-style:none;margin:0 auto;padding:0;max-width:1040px;display:grid;gap:1rem}
+@media (min-width:992px){.goal-list{grid-template-columns:1fr 1fr}.goal:last-child{grid-column:1/-1;max-width:calc(50% - .5rem);justify-self:center;width:100%}}
+.goal{display:flex;gap:1.1rem;align-items:flex-start;padding:1.5rem;border-radius:1.5rem;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);color:#fff}
+.goal .num{background:var(--mint);color:var(--primary-dark)}
+.goal p{margin:0}
+
+/* guru & pegawai */
+.stats{list-style:none;padding:0;margin:0 0 clamp(2.5rem,2rem + 2vw,4rem);display:grid;grid-template-columns:repeat(2,1fr);gap:1rem}
+@media (min-width:768px){.stats{grid-template-columns:repeat(4,1fr)}}
+.stats li{padding:1.25rem 1.5rem;border-radius:1.5rem;background:#fff;box-shadow:var(--shadow);text-align:center}
+.stats b{display:block;font-family:var(--font-display);font-weight:700;font-size:clamp(2rem,1.6rem + 1.4vw,2.75rem);line-height:1;color:var(--primary)}
+.stats span{display:block;margin-top:.4rem;font-size:1rem;color:#4b5048}
+.leader{display:grid;gap:0;margin-bottom:clamp(3rem,2rem + 3vw,5rem);border-radius:var(--radius);overflow:hidden;background:#fff;box-shadow:var(--shadow)}
+@media (min-width:768px){.leader{grid-template-columns:minmax(260px,360px) 1fr}}
+.leader__img{border-radius:0;aspect-ratio:4/5}
+.leader__img img{object-position:center 15%}
+.leader__body{display:flex;flex-direction:column;justify-content:center;align-items:flex-start;gap:1rem;padding:clamp(1.75rem,1.25rem + 2.5vw,3.5rem)}
+.leader__body h3{color:var(--text)}
+.leader__body blockquote{margin:0;padding-left:1.25rem;border-left:4px solid var(--mint);color:#4b5048}
+.link-arrow{display:inline-flex;align-items:center;gap:.4rem;font-weight:700;color:var(--primary);text-decoration:none}
+.link-arrow svg{width:1.1em;height:1.1em;transition:transform .25s var(--ease)}
+.link-arrow:hover svg{transform:translateX(4px)}
+.staff-group+.staff-group{margin-top:clamp(2.5rem,2rem + 2vw,4rem)}
+.staff-group__head{display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem}
+.staff-group__head::after{content:"";flex:1;height:1px;background:rgba(35,35,35,.12);order:1}
+.staff-group__head .count{order:2;font-size:.95rem;color:#4b5048}
+.staff-grid{--cols:2;--gap:clamp(.75rem,.5rem + 1vw,1.5rem);display:flex;flex-wrap:wrap;justify-content:center;gap:var(--gap)}
+@media (min-width:768px){.staff-grid{--cols:3}}
+@media (min-width:1100px){.staff-grid{--cols:4}}
+.staff-card{width:calc((100% - (var(--cols) - 1) * var(--gap)) / var(--cols));display:flex;flex-direction:column;border-radius:1.5rem;overflow:hidden;background:#fff;box-shadow:var(--shadow);transition:transform .35s var(--ease),box-shadow .35s var(--ease)}
+.staff-card:hover{transform:translateY(-6px);box-shadow:var(--shadow-hover)}
+.staff-card__img{border-radius:0;aspect-ratio:4/5}
+.staff-card__img img{object-position:center 15%}
+.staff-card:hover .staff-card__img img{transform:scale(1.04)}
+.staff-card__body{display:flex;flex-direction:column;align-items:flex-start;gap:.6rem;padding:1rem 1.1rem 1.25rem;flex:1}
+.staff-card__name{font-size:clamp(1.02rem,.95rem + .3vw,1.2rem);line-height:1.25;margin:0;color:var(--text)}
+@media (max-width:575px){.staff-card .pill{font-size:.85rem;padding:.25rem .7rem}}
+
 /* ---------- lightbox ---------- */
 .lightbox{position:fixed;inset:0;z-index:3000;display:flex;align-items:center;justify-content:center;background:rgba(20,24,18,.94);opacity:0;visibility:hidden;transition:opacity .3s var(--ease),visibility .3s}
 .lightbox.is-open{opacity:1;visibility:visible}
