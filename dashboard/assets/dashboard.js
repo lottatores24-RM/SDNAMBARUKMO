@@ -67,7 +67,11 @@
       body: JSON.stringify(Object.assign({ action, secret: secret() }, payload || {})),
     });
     if (!r.ok) throw new Error('API ' + r.status);
-    const j = await r.json();
+    const text = await r.text();
+    let j;
+    try { j = JSON.parse(text); } catch (_) {
+      throw new Error('Google membalas bukan JSON (kemungkinan halaman login/izin): ' + text.replace(/\s+/g, ' ').slice(0, 120));
+    }
     if (j && j.error) throw new Error(j.error);
     return j;
   }
@@ -172,6 +176,7 @@
       single: 'brosur',
       fields: [{ name: 'foto', label: 'Brosur Pendaftaran Peserta Didik Baru', type: 'image', required: true, hint: 'Idealnya minimal 1200px lebar. Tampil di halaman Pendaftaran.' }],
     },
+    { key: 'diagnosa', title: 'Cek Koneksi', icon: '<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>', custom: 'diagnosa' },
   ];
 
   function textSnippet(t, n) {
@@ -338,12 +343,14 @@
   }
 
   function renderSection() {
+    if (state.section === 'diagnosa') return renderDiagnosa();
     if (state.loading) return h('p', null, 'Memuat data…');
-    if (!state.content) return h('p', null, 'Belum ada data.');
+    if (!state.content) return h('p', null, 'Data gagal dimuat. Buka menu "Cek Koneksi" untuk melihat penyebabnya.');
     const sec = SECTIONS.find((s) => s.key === state.section);
     if (sec.single === 'overview') return renderOverview();
     if (sec.single === 'brosur') return renderSingleImage(sec);
     if (sec.custom === 'galeri') return renderGaleri();
+    if (sec.custom === 'diagnosa') return renderDiagnosa();
     return renderList(sec);
   }
 
@@ -741,6 +748,56 @@
     )));
     if (!fotos.length) grid.append(h('div', { class: 'empty', style: { gridColumn: '1 / -1' } }, 'Album kosong. Klik “+ Tambah foto” untuk mengisi.'));
     return h('div', null, head, input, grid);
+  }
+
+  /* ---------- diagnostics ---------- */
+  function renderDiagnosa() {
+    const out = h('pre', { style: { whiteSpace: 'pre-wrap', wordBreak: 'break-word', background: '#111', color: '#dfe', padding: '1rem', borderRadius: '10px', fontSize: '.85rem', minHeight: '8rem', margin: '1rem 0 0' } }, 'Klik "Jalankan cek" untuk mulai.');
+    const write = (line) => { out.textContent += line + '\n'; };
+    async function raw(label, init, url) {
+      const t0 = Date.now();
+      try {
+        const r = await fetch(url || API, init);
+        const text = await r.text();
+        write(`${label}: HTTP ${r.status} dalam ${Date.now() - t0} ms, tipe ${r.headers.get('content-type') || '-'}`);
+        write('  isi: ' + text.replace(/\s+/g, ' ').slice(0, 300));
+        try { return JSON.parse(text); } catch (_) { write('  ⚠ bukan JSON'); return null; }
+      } catch (e) {
+        write(`${label}: GAGAL (${e.message}) setelah ${Date.now() - t0} ms`);
+        return null;
+      }
+    }
+    async function run() {
+      out.textContent = '';
+      write('Dashboard: ' + location.href);
+      write('API_URL : ' + API);
+      write('Sandi tersimpan: ' + (secret() ? 'ya (' + secret().length + ' karakter)' : 'TIDAK'));
+      write('');
+      const u = new URL(API); u.searchParams.set('action', 'content'); u.searchParams.set('fresh', '1');
+      const pub = await raw('1. GET publik (dipakai website)', { method: 'GET' }, u.toString());
+      if (pub && pub.pengumuman) write('  → pengumuman publik: ' + pub.pengumuman.length);
+      write('');
+      const login = await raw('2. POST login', { method: 'POST', body: JSON.stringify({ action: 'login', secret: secret() }) });
+      if (login && login.ok) write('  → sandi diterima');
+      else if (login && login.error) write('  → ditolak: ' + login.error);
+      else if (login && login.pengumuman) write('  → ⚠ POST diperlakukan sebagai GET (body hilang)');
+      write('');
+      const adm = await raw('3. POST admin-content (versi Apps Script)', { method: 'POST', body: JSON.stringify({ action: 'admin-content', secret: secret() }) });
+      if (adm && adm.meta) write('  → Apps Script versi ' + (adm.meta.version || '?') + ', isi Sheet: pengumuman=' + adm.content.pengumuman.length + ', video=' + adm.content.video.length);
+      else if (adm && adm.error === 'unknown action') write('  → ⚠ Apps Script MASIH VERSI LAMA (belum Deploy → New version)');
+      write('');
+      write('Selesai. Screenshot semua teks di kotak ini dan kirim ke admin web.');
+    }
+    return h('div', null,
+      h('div', { class: 'page-head' },
+        h('div', null, h('h1', null, 'Cek Koneksi'), h('p', null, 'Mengetes jalur dashboard → Apps Script → Google Sheet. Tidak mengubah data apa pun.')),
+        h('div', { class: 'page-head__actions' },
+          h('button', { class: 'btn', onClick: run }, 'Jalankan cek'),
+          h('button', { class: 'btn btn--ghost', onClick: () => { navigator.clipboard && navigator.clipboard.writeText(out.textContent).then(() => toast('Hasil disalin')); } }, 'Salin hasil'),
+        ),
+      ),
+      out,
+    );
   }
 
   /* ---------- persist ---------- */
