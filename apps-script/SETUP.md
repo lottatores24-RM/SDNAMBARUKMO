@@ -56,6 +56,17 @@ Lo tinggal buka dashboard, login pakai ADMIN_SECRET, dan langsung bisa edit kont
 > Kalau mau ubah ADMIN_SECRET di kemudian hari: buka project Apps Script → ⚙️
 > **Project Settings → Script Properties** → ubah nilai `ADMIN_SECRET`.
 
+## Update Apps Script (setiap kali Code.gs di repo berubah)
+
+URL `/exec` **tidak berubah**, jadi dashboard dan web tidak perlu diubah.
+
+1. Buka project di [script.google.com](https://script.google.com).
+2. Hapus semua isi editor, lalu copy-paste ulang isi `apps-script/Code.gs` terbaru. Simpan (Ctrl+S).
+3. **Deploy → Manage deployments** → klik ikon pensil ✎ di deployment yang ada.
+4. Di **Version**, pilih **New version** → **Deploy**.
+
+Kalau langkah 3–4 dilewati, Google tetap menjalankan kode lama walaupun editornya sudah berisi kode baru.
+
 ## Catatan
 
 - Setiap kali kode `Code.gs` di repo berubah, **ulangi langkah 1 (copy-paste) + Deploy → Manage deployments → ✎ → New version**.

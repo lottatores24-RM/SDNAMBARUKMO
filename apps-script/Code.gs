@@ -77,6 +77,7 @@ function doPost(e) {
     if (!verifySecret(body.secret)) return jsonOut({ error: 'unauthorized' }, 401);
     const action = body.action;
     if (action === 'login') return jsonOut({ ok: true });
+    if (action === 'admin-content') return jsonOut(getAdminContent());
     if (action === 'save') return jsonOut(saveTable(body.table, body.rows));
     if (action === 'upload') return jsonOut(uploadPhoto(body.filename, body.mime, body.base64));
     if (action === 'delete-photo') return jsonOut(deletePhoto(body.url));
@@ -115,25 +116,55 @@ function readTable(name) {
   });
 }
 
+function isDraft(v) {
+  if (v === true) return true;
+  const s = String(v == null ? '' : v).trim().toLowerCase();
+  return s === 'true' || s === '1' || s === 'ya' || s === 'yes';
+}
+
+function tz() {
+  try { return openSheet().getSpreadsheetTimeZone(); } catch (e) { return Session.getScriptTimeZone(); }
+}
+
+function readAll(includeDrafts) {
+  const zone = tz();
+  const data = {};
+  for (const name of Object.keys(SCHEMA)) {
+    const rows = readTable(name);
+    rows.sort((a, b) => (Number(a.order || 0) - Number(b.order || 0)) || String(a.id).localeCompare(String(b.id)));
+    data[name] = rows;
+  }
+  data.pengumuman.forEach((r) => {
+    if (r.tanggal instanceof Date) r.tanggal = Utilities.formatDate(r.tanggal, zone, 'yyyy-MM-dd');
+    r.draft = isDraft(r.draft);
+  });
+  if (!includeDrafts) data.pengumuman = data.pengumuman.filter((r) => !r.draft);
+  return data;
+}
+
+/** Public content (no drafts), cached briefly. */
 function getContent(skipCache) {
   const cache = CacheService.getScriptCache();
   if (!skipCache) {
     const hit = cache.get(CACHE_KEY);
     if (hit) return JSON.parse(hit);
   }
-  const data = {};
-  for (const name of Object.keys(SCHEMA)) {
-    const rows = readTable(name);
-    // sort by order, then by id
-    rows.sort((a, b) => (Number(a.order || 0) - Number(b.order || 0)) || String(a.id).localeCompare(String(b.id)));
-    data[name] = rows;
-  }
-  // drop draft announcements from public output
-  data.pengumuman = data.pengumuman.filter((r) => !r.draft);
-  // normalize dates to ISO yyyy-mm-dd
-  data.pengumuman.forEach((r) => { if (r.tanggal instanceof Date) r.tanggal = Utilities.formatDate(r.tanggal, 'UTC', 'yyyy-MM-dd'); });
+  const data = readAll(false);
   cache.put(CACHE_KEY, JSON.stringify(data), CACHE_SECONDS);
   return data;
+}
+
+/** Admin view: everything in the sheet, including drafts, never cached. */
+function getAdminContent() {
+  const props = PropertiesService.getScriptProperties();
+  return {
+    content: readAll(true),
+    meta: {
+      spreadsheetUrl: 'https://docs.google.com/spreadsheets/d/' + props.getProperty('SPREADSHEET_ID'),
+      folderUrl: 'https://drive.google.com/drive/folders/' + props.getProperty('DRIVE_FOLDER_ID'),
+      version: 2,
+    },
+  };
 }
 
 function saveTable(name, rows) {
@@ -145,6 +176,9 @@ function saveTable(name, rows) {
   sheet.setFrozenRows(1);
   const rowCount = sheet.getLastRow() - 1;
   if (rowCount > 0) sheet.getRange(2, 1, rowCount, sheet.getLastColumn()).clearContent();
+  // dates stay plain text (yyyy-mm-dd) so the sheet's timezone can't shift them
+  const dateCol = header.indexOf('tanggal');
+  if (dateCol >= 0) sheet.getRange(2, dateCol + 1, Math.max(rows.length, 1), 1).setNumberFormat('@');
   if (rows.length) {
     const matrix = rows.map((r, i) => header.map((h) => {
       let v = r[h];
@@ -154,8 +188,9 @@ function saveTable(name, rows) {
     }));
     sheet.getRange(2, 1, matrix.length, header.length).setValues(matrix);
   }
+  SpreadsheetApp.flush();
   CacheService.getScriptCache().remove(CACHE_KEY);
-  return { ok: true, saved: rows.length };
+  return { ok: true, saved: rows.length, stored: readTable(name).length };
 }
 
 /* ===================== Drive upload ===================== */

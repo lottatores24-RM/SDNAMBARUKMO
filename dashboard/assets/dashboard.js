@@ -279,11 +279,27 @@
     input.focus();
   }
 
+  // Read the sheet as-is (drafts included). Older Apps Script deployments
+  // don't know 'admin-content'; fall back to the public read and flag it.
+  async function refreshFromServer() {
+    try {
+      const r = await apiPost('admin-content');
+      state.content = r.content;
+      state.meta = r.meta || {};
+      state.backendOutdated = false;
+    } catch (e) {
+      if (!/unknown action/.test(e.message)) throw e;
+      state.content = await apiGet('content', true);
+      state.meta = {};
+      state.backendOutdated = true;
+    }
+  }
+
   async function load() {
     state.loading = true;
     renderShell();
     try {
-      state.content = await apiGet('content', true);
+      await refreshFromServer();
       state.loading = false;
       renderShell();
     } catch (ex) {
@@ -351,6 +367,14 @@
           h('a', { class: 'btn btn--ghost', href: '/', target: '_blank', rel: 'noopener' }, 'Buka website'),
         ),
       ),
+      state.backendOutdated ? h('div', { class: 'card', style: { padding: '1rem 1.25rem', marginBottom: '1.25rem', borderColor: '#e0b252', background: '#fff8e6' } },
+        h('b', null, '⚠ Apps Script perlu diperbarui. '),
+        'Kode Apps Script lo masih versi lama, jadi dashboard belum bisa mengecek isi Google Sheet. Ikuti langkah "Update Apps Script" di apps-script/SETUP.md.',
+      ) : null,
+      state.meta && state.meta.spreadsheetUrl ? h('p', { style: { marginBottom: '1rem', color: 'var(--muted)' } },
+        'Data tersimpan di ', h('a', { href: state.meta.spreadsheetUrl, target: '_blank', rel: 'noopener' }, 'Google Sheet'),
+        ', foto di ', h('a', { href: state.meta.folderUrl, target: '_blank', rel: 'noopener' }, 'folder Google Drive'), '.',
+      ) : null,
       h('div', { class: 'overview' }, ...stats.map(([k, lbl, n]) => h('button', {
         class: 'stat',
         onClick: () => { state.section = k; renderShell(); },
@@ -724,9 +748,16 @@
     state.saving = true;
     try {
       const normalized = rows.map((r, i) => Object.assign({ order: i + 1 }, r));
-      await apiPost('save', { table, rows: normalized });
-      state.content[table] = normalized;
-      toast('Tersimpan');
+      const res = await apiPost('save', { table, rows: normalized });
+      // Trust the sheet, not local state: re-read and confirm the row count.
+      if (typeof res.stored === 'number' && res.stored !== normalized.length) {
+        throw new Error(`Google Sheet hanya menyimpan ${res.stored} dari ${normalized.length} baris`);
+      }
+      if (typeof res.saved !== 'number') {
+        throw new Error('Apps Script tidak menjawab seperti biasa. Data kemungkinan tidak tersimpan.');
+      }
+      await refreshFromServer();
+      toast('Tersimpan ke Google Sheet');
       renderShell();
     } catch (e) {
       toast('Gagal menyimpan: ' + e.message, 'err');
