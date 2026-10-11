@@ -6,7 +6,7 @@
   'use strict';
 
   // Alamat Apps Script dashboard. Satu sumber kebenaran untuk web publik.
-  var API = 'https://script.google.com/macros/s/AKfycby-6V90E8DnFMsTsl_93T6zDHW1LF0UPPFlTslCDMZ5QHXJGG9UQ8x6q9qpjc8aLk7qdg/exec';
+  var API = 'https://script.google.com/macros/s/AKfycbzgJYATaS52Exu3OlzHgDUtNnW1u2eivZQy36VnxW4Y8-9YxPO1H8gr-f-_c9cbow_YhQ/exec';
 
   // Mulai debug UI SEBELUM early-return apapun supaya ?debug=1 selalu kelihatan.
   var isDebug = /[?&]debug=1/.test(location.search);
