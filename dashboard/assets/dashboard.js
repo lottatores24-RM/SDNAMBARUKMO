@@ -590,7 +590,8 @@
       ) : null,
       state.meta && state.meta.spreadsheetUrl ? h('p', { style: { marginBottom: '1rem', color: 'var(--muted)' } },
         'Data tersimpan di ', h('a', { href: state.meta.spreadsheetUrl, target: '_blank', rel: 'noopener' }, 'Google Sheet'),
-        ', foto di ', h('a', { href: state.meta.folderUrl, target: '_blank', rel: 'noopener' }, 'folder Google Drive'), '.',
+        '. Foto yang diunggah lewat dashboard masuk ke ', h('a', { href: state.meta.folderUrl, target: '_blank', rel: 'noopener' }, 'folder Google Drive'),
+        '. Foto bawaan website (sebelum ada dashboard) tetap tersimpan di website, jadi tidak ada di folder itu.',
       ) : null,
       h('div', { class: 'overview' }, ...stats.map(([k, lbl, n]) => h('button', {
         class: 'stat',
