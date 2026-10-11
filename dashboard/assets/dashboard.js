@@ -42,12 +42,47 @@
     if (isNaN(d)) return String(iso);
     return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
   };
+  // Notification at the top: kind 'ok' (green), 'err' (red, stays longer), or info.
   const toast = (msg, kind) => {
     const el = document.getElementById('toast');
-    el.className = 'toast show' + (kind === 'err' ? ' toast--err' : '');
-    el.textContent = msg;
+    const hide = () => el.classList.remove('show');
+    el.className = 'toast show' + (kind === 'err' ? ' toast--err' : kind === 'ok' ? ' toast--ok' : '');
+    el.setAttribute('role', kind === 'err' ? 'alert' : 'status');
+    el.innerHTML = '';
+    el.append(
+      h('span', { class: 'toast__icon', 'aria-hidden': 'true' }, kind === 'err' ? '✕' : kind === 'ok' ? '✓' : 'i'),
+      h('span', { class: 'toast__msg' }, msg),
+      h('button', { type: 'button', class: 'toast__close', 'aria-label': 'Tutup notifikasi', onClick: hide }, '×'),
+    );
     clearTimeout(toast._t);
-    toast._t = setTimeout(() => el.classList.remove('show'), 2600);
+    toast._t = setTimeout(hide, kind === 'err' ? 8000 : 3500);
+  };
+
+  // Full-screen "please wait" box with a running seconds counter.
+  // busy('Menyimpan…') shows it, busy() hides it.
+  const busy = (msg, sub) => {
+    let el = document.getElementById('busy');
+    if (!el) {
+      el = h('div', { id: 'busy', class: 'busy', role: 'alertdialog', 'aria-live': 'assertive', 'aria-busy': 'true' },
+        h('div', { class: 'busy__box' },
+          h('span', { class: 'busy__spin', 'aria-hidden': 'true' }),
+          h('div', { class: 'busy__msg' }, h('span', { class: 'busy__text' }), h('span', { class: 'busy__sub' })),
+        ),
+      );
+      document.body.append(el);
+    }
+    clearInterval(busy._t);
+    if (!msg) { el.classList.remove('show'); return; }
+    el.querySelector('.busy__text').textContent = msg;
+    const subEl = el.querySelector('.busy__sub');
+    const t0 = Date.now();
+    const tick = () => {
+      const s = Math.floor((Date.now() - t0) / 1000);
+      subEl.textContent = (sub || 'Mohon tunggu, jangan tutup halaman ini.') + (s >= 2 ? ` (${s} detik)` : '');
+    };
+    tick();
+    busy._t = setInterval(tick, 1000);
+    if (!el.classList.contains('show')) el.classList.add('show');
   };
 
   /* ---------- API client ---------- */
@@ -225,19 +260,24 @@
     const lines = Object.entries(add).map(([t, l]) => `• ${t.replace(/_/g, ' ')}: ${l.length}`).join('\n');
     if (!lines) return toast('Semua data awal sudah ada');
     if (!confirm('Tambahkan data awal yang belum ada di Google Sheet?\n\n' + lines + '\n\nData yang sudah ada tidak diubah atau dihapus.')) return;
+    const tables = Object.keys(add);
     try {
-      for (const table of Object.keys(add)) {
+      for (let i = 0; i < tables.length; i++) {
+        const table = tables[i];
         const existing = table === 'brosur_ppdb' ? [] : (state.content[table] || []);
         const rows = existing.concat(add[table]).map((r, i) => Object.assign({}, r, { order: i + 1 }));
-        toast('Mengimpor ' + table.replace(/_/g, ' ') + '…');
+        busy(`Mengimpor ${table.replace(/_/g, ' ')} (${i + 1} dari ${tables.length})…`);
         const res = await apiPost('save', { table, rows });
         if (typeof res.saved !== 'number') throw new Error('Apps Script tidak menjawab seperti biasa');
         state.content[table] = rows;
       }
+      busy('Memuat ulang data…');
       await refreshFromServer();
-      toast('Data awal berhasil diimpor');
+      busy();
+      toast('Data awal berhasil diimpor', 'ok');
       renderShell();
     } catch (e) {
+      busy();
       toast('Impor gagal: ' + e.message, 'err');
     }
   }
@@ -426,8 +466,9 @@
         h('div', { class: 'editor__foot' },
           h('span', null, ''),
           h('button', { class: 'btn', onClick: async () => {
+            if (state.uploading) return toast('Tunggu, foto masih diunggah', 'err');
             if (!data.foto) return toast('Foto belum dipilih', 'err');
-            await persist(sec.key, [{ id: '1', foto: data.foto }]);
+            await persist(sec.key, [{ id: '1', foto: data.foto }], { ok: 'Brosur berhasil disimpan' });
           } }, 'Simpan'),
         ),
       ),
@@ -519,7 +560,7 @@
       const others = all.filter((r) => !inThisGroup.has(String(r.id)));
       const merged = [...others, ...reordered];
       merged.forEach((r, i) => { r.order = i + 1; });
-      await persist(sec.key, merged);
+      await persist(sec.key, merged, { msg: 'Menyimpan urutan…', ok: 'Urutan disimpan' });
     });
     ul.addEventListener('dragover', (e) => {
       e.preventDefault();
@@ -533,9 +574,13 @@
   async function removeRow(sec, r) {
     if (!confirm(`Hapus "${sec.list(r).title}"?`)) return;
     const rows = state.content[sec.key].filter((x) => String(x.id) !== String(r.id));
-    await persist(sec.key, rows);
-    if (r.foto) try { await apiPost('delete-photo', { url: r.foto }); } catch (_) {}
-    if (r.brosur) try { await apiPost('delete-photo', { url: r.brosur }); } catch (_) {}
+    const ok = await persist(sec.key, rows, { msg: 'Menghapus data…', ok: 'Data berhasil dihapus' });
+    if (ok) deletePhotos([r.foto, r.brosur]);
+  }
+
+  // Cleaning up Drive files isn't something the admin should wait for.
+  function deletePhotos(urls) {
+    urls.filter(Boolean).forEach((url) => { apiPost('delete-photo', { url }).catch(() => {}); });
   }
 
   /* ---------- editor ---------- */
@@ -620,17 +665,23 @@
     form.append(h('div', { class: 'editor__foot' },
       h('button', { class: 'btn btn--ghost', onClick: () => { state.editing = null; renderShell(); } }, 'Batal'),
       h('div', { style: { display: 'flex', gap: '.5rem' } },
-        h('button', { class: 'btn', onClick: async () => {
-          // validate
+        h('button', { class: 'btn', onClick: async (e) => {
+          if (state.uploading) return toast('Tunggu, foto masih diunggah', 'err');
           for (const f of sec.fields) {
             if (f.required && !data[f.name]) return toast(`Isi dulu: ${f.label}`, 'err');
           }
           const list = (state.content[sec.key] || []).slice();
           const i = list.findIndex((r) => String(r.id) === String(data.id));
           if (i >= 0) list[i] = data; else list.push(data);
-          await persist(sec.key, list);
-          state.editing = null;
-          renderShell();
+          const btn = e.currentTarget;
+          btn.disabled = true;
+          const ok = await persist(sec.key, list, {
+            keepView: true,
+            ok: isNew ? 'Berhasil ditambahkan' : 'Perubahan berhasil disimpan',
+          });
+          btn.disabled = false;
+          // On failure the form stays open so nothing typed is lost.
+          if (ok) { state.editing = null; renderShell(); }
         } }, 'Simpan'),
       ),
     ));
@@ -659,8 +710,10 @@
     async function handle(file) {
       if (!file || !file.type.startsWith('image/')) return;
       pickBtn.disabled = true;
+      state.uploading = true;
       progress.classList.add('show');
       progress.querySelector('span').style.width = '30%';
+      busy('Mengunggah foto…', 'Foto dikecilkan lalu dikirim ke Google Drive.');
       try {
         const url = await uploadImage(file);
         progress.querySelector('span').style.width = '100%';
@@ -669,10 +722,13 @@
         img.src = url;
         slot.append(chip, img);
         slot.classList.add('has');
-        toast('Foto berhasil diunggah');
+        busy();
+        toast('Foto berhasil diunggah. Klik Simpan untuk menyimpan.', 'ok');
       } catch (e) {
+        busy();
         toast('Gagal unggah: ' + e.message, 'err');
       } finally {
+        state.uploading = false;
         setTimeout(() => progress.classList.remove('show'), 600);
         progress.querySelector('span').style.width = '0';
         pickBtn.disabled = false;
@@ -700,7 +756,7 @@
       const sl = slug(judul) || uuid();
       if (albums.find((a) => a.slug === sl)) return toast('Nama album sudah ada', 'err');
       const next = albums.concat([{ id: uuid(), slug: sl, judul, order: albums.length + 1 }]);
-      persist('galeri_album', next);
+      persist('galeri_album', next, { ok: `Album "${judul}" dibuat` });
     } }, '+ Album baru');
     const head = h('div', { class: 'page-head' },
       h('div', null, h('h1', null, 'Galeri'), h('p', null, `${albums.length} album, ${state.content.galeri_foto.length} foto total`)),
@@ -721,12 +777,14 @@
           h('button', { class: 'btn btn--ghost btn--sm', onClick: async () => {
             const nama = prompt('Nama album:', a.judul); if (!nama) return;
             const next = albums.map((x) => x.id === a.id ? { ...x, judul: nama } : x);
-            await persist('galeri_album', next);
+            await persist('galeri_album', next, { ok: 'Nama album diubah' });
           } }, 'Ubah nama'),
           h('button', { class: 'btn btn--danger btn--sm', onClick: async () => {
             if (!confirm(`Hapus album "${a.judul}" beserta ${fotos.length} foto di dalamnya?`)) return;
-            await persist('galeri_album', albums.filter((x) => x.id !== a.id));
-            await persist('galeri_foto', state.content.galeri_foto.filter((f) => f.album !== a.slug));
+            if (!await persist('galeri_album', albums.filter((x) => x.id !== a.id), { msg: 'Menghapus album…', keepView: true })) return;
+            if (await persist('galeri_foto', state.content.galeri_foto.filter((f) => f.album !== a.slug), { msg: 'Menghapus foto album…', ok: `Album "${a.judul}" dihapus` })) {
+              deletePhotos(fotos.map((f) => f.foto));
+            }
           } }, 'Hapus'),
         ),
       ));
@@ -750,21 +808,35 @@
     );
     const input = h('input', { id: 'add-foto', type: 'file', accept: 'image/*', multiple: '', style: { display: 'none' } });
     input.addEventListener('change', async () => {
-      for (const file of Array.from(input.files)) {
+      const files = Array.from(input.files || []).filter((f) => f.type.startsWith('image/'));
+      input.value = '';
+      if (!files.length || state.saving) return;
+      // Upload everything first, then write the sheet once.
+      const added = [];
+      const failed = [];
+      for (let i = 0; i < files.length; i++) {
+        busy(files.length > 1 ? `Mengunggah foto ${i + 1} dari ${files.length}…` : 'Mengunggah foto…', 'Foto dikecilkan lalu dikirim ke Google Drive.');
         try {
-          const url = await uploadImage(file);
-          const next = state.content.galeri_foto.concat([{ id: uuid(), album: album.slug, foto: url, order: state.content.galeri_foto.length + 1 }]);
-          await persist('galeri_foto', next);
-        } catch (e) { toast('Gagal unggah ' + file.name + ': ' + e.message, 'err'); }
+          added.push({ id: uuid(), album: album.slug, foto: await uploadImage(files[i]) });
+        } catch (e) { failed.push(files[i].name + ' (' + e.message + ')'); }
       }
+      busy();
+      if (added.length) {
+        await persist('galeri_foto', state.content.galeri_foto.concat(added), {
+          msg: 'Menyimpan ke album…',
+          ok: added.length + ' foto ditambahkan' + (failed.length ? `, ${failed.length} gagal` : ''),
+        });
+      }
+      if (failed.length) toast('Gagal unggah: ' + failed.join(', '), 'err');
     });
     const grid = h('div', { style: { display: 'grid', gap: '.75rem', gridTemplateColumns: 'repeat(auto-fill,minmax(160px,1fr))' } });
     fotos.forEach((f) => grid.append(h('div', { style: { position: 'relative', background: '#000', borderRadius: '10px', overflow: 'hidden', aspectRatio: '1/1' } },
       h('img', { src: f.foto, alt: '', style: { width: '100%', height: '100%', objectFit: 'cover' } }),
       h('button', { class: 'btn btn--danger btn--sm', style: { position: 'absolute', top: '.4rem', right: '.4rem' }, onClick: async () => {
         if (!confirm('Hapus foto ini?')) return;
-        await persist('galeri_foto', state.content.galeri_foto.filter((x) => x.id !== f.id));
-        try { await apiPost('delete-photo', { url: f.foto }); } catch (_) {}
+        if (await persist('galeri_foto', state.content.galeri_foto.filter((x) => x.id !== f.id), { msg: 'Menghapus foto…', ok: 'Foto dihapus' })) {
+          deletePhotos([f.foto]);
+        }
       } }, 'Hapus'),
     )));
     if (!fotos.length) grid.append(h('div', { class: 'empty', style: { gridColumn: '1 / -1' } }, 'Album kosong. Klik “+ Tambah foto” untuk mengisi.'));
@@ -822,23 +894,32 @@
   }
 
   /* ---------- persist ---------- */
-  async function persist(table, rows) {
+  // One request per save. The sheet reports how many rows it holds afterwards,
+  // so there's no need for a second round trip to re-read everything.
+  // Returns true on success so callers can keep a form open on failure.
+  async function persist(table, rows, opt) {
+    opt = opt || {};
+    if (state.saving) { toast('Tunggu, proses sebelumnya belum selesai', 'err'); return false; }
     state.saving = true;
+    busy(opt.msg || 'Menyimpan ke Google Sheet…');
     try {
       const normalized = rows.map((r, i) => Object.assign({ order: i + 1 }, r));
       const res = await apiPost('save', { table, rows: normalized });
-      // Trust the sheet, not local state: re-read and confirm the row count.
-      if (typeof res.stored === 'number' && res.stored !== normalized.length) {
-        throw new Error(`Google Sheet hanya menyimpan ${res.stored} dari ${normalized.length} baris`);
-      }
       if (typeof res.saved !== 'number') {
         throw new Error('Apps Script tidak menjawab seperti biasa. Data kemungkinan tidak tersimpan.');
       }
-      await refreshFromServer();
-      toast('Tersimpan ke Google Sheet');
-      renderShell();
+      if (typeof res.stored === 'number' && res.stored !== normalized.length) {
+        throw new Error(`Google Sheet hanya menyimpan ${res.stored} dari ${normalized.length} baris`);
+      }
+      state.content[table] = normalized;
+      busy();
+      toast(opt.ok || 'Berhasil disimpan', 'ok');
+      if (!opt.keepView) renderShell();
+      return true;
     } catch (e) {
+      busy();
       toast('Gagal menyimpan: ' + e.message, 'err');
+      return false;
     } finally {
       state.saving = false;
     }
