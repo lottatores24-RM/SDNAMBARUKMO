@@ -293,5 +293,18 @@
     setTimeout(function () { if (!loaded) fallback.hidden = false; }, 4000);
   });
 
+  /* ---------- sambutan: baca selengkapnya ---------- */
+  document.querySelectorAll('.principal__toggle').forEach(function (btn) {
+    var more = document.getElementById(btn.getAttribute('aria-controls'));
+    if (!more) return;
+    btn.addEventListener('click', function () {
+      var open = btn.getAttribute('aria-expanded') !== 'true';
+      btn.setAttribute('aria-expanded', String(open));
+      more.classList.toggle('is-open', open);
+      btn.textContent = btn.getAttribute(open ? 'data-less' : 'data-more');
+      if (!open) btn.closest('.principal').scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+    });
+  });
+
   doc.classList.add('js-ready');
 })();

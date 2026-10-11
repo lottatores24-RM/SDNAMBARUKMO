@@ -139,6 +139,27 @@
   var GROUPS = [['kelas', 'Guru Kelas'], ['mapel', 'Guru Mata Pelajaran'], ['kependidikan', 'Tenaga Kependidikan']];
 
   var EXTRA = {
+    // Beranda: tiga pengumuman terbaru (sudah tanpa draft dari server).
+    'pengumuman-home': function (data) {
+      var rows = (data.pengumuman || []).slice();
+      if (!rows.length) return null;
+      rows.sort(function (a, b) { return String(b.tanggal || '').localeCompare(String(a.tanggal || '')); });
+      return rows.slice(0, 3).map(function (r, i) {
+        var text = String(r.naskah || '').replace(/\s+/g, ' ').trim();
+        if (text.length > 160) text = text.slice(0, 157).replace(/\s+\S*$/, '') + '…';
+        var pic = r.brosur
+          ? '<div class="ph news-card__img">' + img(r.brosur, r.judul) + '</div>'
+          : '<div class="ph news-card__img news-card__img--empty">' + img('assets/img/logo-sd.webp', '') + '</div>';
+        return '<a class="news-card" href="pengumuman.html" data-reveal' + delay(i, 3, 80) + '>' + pic +
+          '<span class="news-card__body">' +
+            '<span class="news-card__meta">' + tag(r.label) + (r.tanggal ? '<span>' + escapeHtml(fmtDate(r.tanggal)) + '</span>' : '') + '</span>' +
+            '<span class="news-card__title">' + escapeHtml(r.judul) + '</span>' +
+            (text ? '<span class="news-card__desc">' + escapeHtml(text) + '</span>' : '') +
+            '<span class="news-card__more">Baca selengkapnya ' + iconArrow() + '</span>' +
+          '</span></a>';
+      }).join('');
+    },
+
     guru: function (data) {
       var rows = byOrder(data.guru || []);
       if (!rows.length) return null;
