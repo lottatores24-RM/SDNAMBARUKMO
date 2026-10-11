@@ -6,7 +6,9 @@
   const API = CFG.API_URL || '';
   const SITE = CFG.SITE || 'SD Negeri Ambarukmo';
   const LOGO = '../assets/img/logo-sd.webp';
-  const SECRET_KEY = 'sdn.secret';
+  const TOKEN_KEY = 'sdn.token';
+  const USER_KEY = 'sdn.user';
+  const SECRET_KEY = 'sdn.secret'; // only for an Apps Script that predates accounts
 
   /* ---------- utilities ---------- */
   const h = (tag, attrs, ...kids) => {
@@ -86,7 +88,25 @@
   };
 
   /* ---------- API client ---------- */
-  const secret = () => localStorage.getItem(SECRET_KEY) || '';
+  const store = {
+    get: (k) => { try { return localStorage.getItem(k) || ''; } catch (_) { return ''; } },
+    set: (k, v) => { try { localStorage.setItem(k, v); } catch (_) {} },
+    del: (k) => { try { localStorage.removeItem(k); } catch (_) {} },
+  };
+  const secret = () => store.get(SECRET_KEY);
+  const token = () => store.get(TOKEN_KEY);
+  const PUBLIC_ACTIONS = ['login', 'setup-account', 'forgot', 'reset'];
+  function signedIn(res) {
+    store.set(TOKEN_KEY, res.token);
+    store.set(USER_KEY, res.username || '');
+    store.del(SECRET_KEY);
+  }
+  function signOut() {
+    store.del(TOKEN_KEY);
+    store.del(SECRET_KEY);
+    state.content = null;
+    state.account = null;
+  }
   async function apiGet(action, fresh) {
     const u = new URL(API);
     u.searchParams.set('action', action);
@@ -99,13 +119,19 @@
     const r = await fetch(API, {
       method: 'POST',
       // Simple body (no custom header) avoids CORS preflight on Apps Script.
-      body: JSON.stringify(Object.assign({ action, secret: secret() }, payload || {})),
+      body: JSON.stringify(Object.assign({ action }, state.legacy ? { secret: secret() } : { token: token() }, payload || {})),
     });
     if (!r.ok) throw new Error('API ' + r.status);
     const text = await r.text();
     let j;
     try { j = JSON.parse(text); } catch (_) {
       throw new Error('Google membalas bukan JSON (kemungkinan halaman login/izin): ' + text.replace(/\s+/g, ' ').slice(0, 120));
+    }
+    if (j && j.error === 'unauthorized' && !PUBLIC_ACTIONS.includes(action) && !state.legacy) {
+      busy();
+      signOut();
+      renderLogin('Sesi login sudah berakhir. Silakan masuk lagi.');
+      throw new Error('Sesi login berakhir');
     }
     if (j && j.error) throw new Error(j.error);
     return j;
@@ -211,6 +237,7 @@
       single: 'brosur',
       fields: [{ name: 'foto', label: 'Brosur Pendaftaran Peserta Didik Baru', type: 'image', required: true, hint: 'Idealnya minimal 1200px lebar. Tampil di halaman Pendaftaran.' }],
     },
+    { key: 'akun', title: 'Pengaturan Akun', icon: '<circle cx="12" cy="8" r="4"/><path d="M4 21v-1a7 7 0 0 1 14 0v1"/><path d="M19 3l2 2-2 2"/>', custom: 'akun' },
     { key: 'diagnosa', title: 'Cek Koneksi', icon: '<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>', custom: 'diagnosa' },
   ];
 
@@ -234,6 +261,8 @@
     editing: null, // { table, row } or { table, index }
     loading: false,
     saving: false,
+    legacy: false, // Apps Script without username/password accounts
+    account: null,
   };
 
   // Seed rows whose id isn't in the sheet yet (brosur: only when no brosur exists).
@@ -283,10 +312,23 @@
   }
 
   /* ---------- bootstrap ---------- */
-  function start() {
+  async function start() {
     if (!API) return renderConfigMissing();
-    if (!secret()) return renderLogin();
-    load();
+    if (token()) return load();
+    renderAuthCard('Dashboard Admin', 'Menghubungkan ke server…', null);
+    let status;
+    try {
+      status = await apiGet('auth-status');
+    } catch (e) {
+      return renderAuthCard('Dashboard Admin', 'Server tidak bisa dihubungi: ' + e.message, h('button', { type: 'button', class: 'login__primary', onClick: start }, 'Coba lagi'));
+    }
+    if (status && status.error === 'unknown action') {
+      // Apps Script hasn't been updated to the version with accounts yet.
+      state.legacy = true;
+      return secret() ? load() : renderLegacyLogin();
+    }
+    state.legacy = false;
+    return status.hasAccount ? renderLogin() : renderSetup(true);
   }
 
   function renderConfigMissing() {
@@ -301,48 +343,149 @@
     );
   }
 
-  function renderLogin() {
-    const err = h('p', { class: 'login__err' });
-    const input = h('input', { type: 'password', placeholder: 'ADMIN_SECRET dari Apps Script', autocomplete: 'current-password' });
-    const btn = h('button', { type: 'submit' }, 'Masuk');
-    const form = h('form', { onSubmit: async (e) => {
-      e.preventDefault();
-      err.textContent = '';
-      if (!input.value.trim()) return;
-      btn.disabled = true;
-      try {
-        localStorage.setItem(SECRET_KEY, input.value.trim());
-        await apiPost('login');
-        start();
-      } catch (ex) {
-        localStorage.removeItem(SECRET_KEY);
-        err.textContent = 'Sandi salah atau koneksi gagal. Coba lagi.';
-        btn.disabled = false;
-      }
-    } },
-      h('label', { for: 'sec' }, 'Kata sandi'),
-      input,
-      btn,
-      err,
-    );
-    document.getElementById('app').innerHTML = '';
-    document.getElementById('app').append(
+  /* ---------- login screens ---------- */
+  function renderAuthCard(title, sub, body, foot) {
+    const app = document.getElementById('app');
+    app.innerHTML = '';
+    app.append(
       h('div', { class: 'login' },
         h('div', { class: 'login__card' },
-          h('div', { class: 'login__brand' },
-            h('img', { src: LOGO, alt: '' }),
-            h('b', null, SITE),
-          ),
-          h('h1', null, 'Dashboard Admin'),
-          h('p', null, 'Masuk pakai ADMIN_SECRET.'),
-          form,
-          h('div', { class: 'login__hint' },
-            'Lupa sandi? Buka Apps Script → ⚙️ Project Settings → ', h('code', null, 'ADMIN_SECRET'),
-          ),
+          h('div', { class: 'login__brand' }, h('img', { src: LOGO, alt: '' }), h('b', null, SITE)),
+          h('h1', null, title),
+          sub ? h('p', null, sub) : null,
+          body,
+          foot ? h('div', { class: 'login__links' }, foot) : null,
         ),
       ),
     );
-    input.focus();
+    const first = app.querySelector('input');
+    if (first) first.focus();
+  }
+
+  function input(label, attrs) {
+    const id = 'f-' + uuid();
+    const el = h('input', Object.assign({ id }, attrs));
+    let wrap;
+    if (attrs.type === 'password') {
+      const eye = h('button', { type: 'button', class: 'pw__eye', 'aria-label': 'Tampilkan password', onClick: () => {
+        const show = el.type === 'password';
+        el.type = show ? 'text' : 'password';
+        eye.textContent = show ? 'Sembunyikan' : 'Lihat';
+        eye.setAttribute('aria-label', show ? 'Sembunyikan password' : 'Tampilkan password');
+      } }, 'Lihat');
+      wrap = h('div', { class: 'pw' }, el, eye);
+    }
+    return { el, node: h('div', { class: 'field' }, h('label', { for: id }, label), wrap || el) };
+  }
+
+  // Form that shows errors inline and keeps the button disabled while working.
+  function authForm(fields, submitText, onSubmit) {
+    const err = h('p', { class: 'login__err', role: 'alert' });
+    const btn = h('button', { type: 'submit', class: 'login__primary' }, submitText);
+    const form = h('form', { onSubmit: async (e) => {
+      e.preventDefault();
+      err.textContent = '';
+      btn.disabled = true;
+      try { await onSubmit(); } catch (ex) { busy(); err.textContent = ex.message; } finally { btn.disabled = false; }
+    } }, ...fields.map((f) => f.node), btn, err);
+    return form;
+  }
+  const link = (text, fn) => h('button', { type: 'button', class: 'login__link', onClick: fn }, text);
+
+  function renderLogin(notice) {
+    const user = input('Username', { type: 'text', autocomplete: 'username', autocapitalize: 'none', spellcheck: 'false', required: true, value: store.get(USER_KEY) });
+    const pass = input('Password', { type: 'password', autocomplete: 'current-password', required: true });
+    const form = authForm([user, pass], 'Masuk', async () => {
+      busy('Masuk…', 'Memeriksa username dan password.');
+      const res = await apiPost('login', { username: user.el.value, password: pass.el.value });
+      signedIn(res);
+      busy();
+      toast('Selamat datang, ' + res.username, 'ok');
+      load();
+    });
+    renderAuthCard('Dashboard Admin', notice || 'Masuk pakai username dan password admin.', form, [
+      link('Lupa password?', () => renderForgot()),
+      link('Buat akun / kunci darurat', () => renderSetup(false)),
+    ]);
+    if (user.el.value) pass.el.focus();
+  }
+
+  function renderForgot() {
+    const user = input('Username', { type: 'text', autocomplete: 'username', autocapitalize: 'none', required: true, value: store.get(USER_KEY) });
+    const form = authForm([user], 'Kirim kode ke email', async () => {
+      busy('Mengirim kode…', 'Kode reset dikirim ke email notifikasi akun.');
+      const res = await apiPost('forgot', { username: user.el.value });
+      busy();
+      renderResetCode(user.el.value, res);
+    });
+    renderAuthCard('Lupa password', 'Masukkan username. Kode 6 angka akan dikirim ke email notifikasi yang terdaftar.', form, [
+      link('← Kembali ke login', () => renderLogin()),
+    ]);
+  }
+
+  function renderResetCode(username, sent) {
+    const code = input('Kode dari email (6 angka)', { type: 'text', inputmode: 'numeric', autocomplete: 'one-time-code', maxlength: '6', required: true });
+    const p1 = input('Password baru (minimal 8 karakter)', { type: 'password', autocomplete: 'new-password', minlength: '8', required: true });
+    const p2 = input('Ulangi password baru', { type: 'password', autocomplete: 'new-password', required: true });
+    const form = authForm([code, p1, p2], 'Simpan password baru', async () => {
+      if (p1.el.value !== p2.el.value) throw new Error('Ulangi password tidak sama.');
+      busy('Menyimpan password baru…');
+      const res = await apiPost('reset', { username, code: code.el.value, newPassword: p1.el.value });
+      signedIn(res);
+      busy();
+      toast('Password baru disimpan' + mailNote(res.mail), 'ok');
+      load();
+    });
+    renderAuthCard('Masukkan kode', (sent.sentTo ? 'Kode sudah dikirim ke ' + sent.sentTo + '.' : sent.message) + ' Cek juga folder Spam. Kode berlaku 15 menit.', form, [
+      link('Kirim ulang kode', () => renderForgot()),
+      link('← Kembali ke login', () => renderLogin()),
+    ]);
+  }
+
+  function renderSetup(first) {
+    const sec = input('Kunci darurat (ADMIN_SECRET)', { type: 'password', autocomplete: 'off', required: true });
+    const user = input('Username baru', { type: 'text', autocomplete: 'username', autocapitalize: 'none', spellcheck: 'false', required: true, placeholder: 'contoh: admin.sdn' });
+    const mail = input('Email notifikasi', { type: 'email', autocomplete: 'email', required: true, placeholder: 'nama@gmail.com' });
+    const p1 = input('Password (minimal 8 karakter)', { type: 'password', autocomplete: 'new-password', minlength: '8', required: true });
+    const p2 = input('Ulangi password', { type: 'password', autocomplete: 'new-password', required: true });
+    const form = authForm([sec, user, mail, p1, p2], first ? 'Buat akun' : 'Simpan akun', async () => {
+      if (p1.el.value !== p2.el.value) throw new Error('Ulangi password tidak sama.');
+      busy(first ? 'Membuat akun…' : 'Menyimpan akun…');
+      const res = await apiPost('setup-account', { secret: sec.el.value.trim(), username: user.el.value, email: mail.el.value, password: p1.el.value });
+      signedIn(res);
+      busy();
+      toast((first ? 'Akun dibuat' : 'Akun disimpan') + mailNote(res.mail), 'ok');
+      load();
+    });
+    renderAuthCard(first ? 'Buat akun admin' : 'Kunci darurat',
+      first
+        ? 'Belum ada akun. Buat username dan password untuk masuk dashboard. Kunci darurat ada di Apps Script → ⚙️ Project Settings → Script Properties → ADMIN_SECRET.'
+        : 'Pakai ini kalau lupa username dan tidak bisa membuka email. Akun lama diganti dan semua perangkat dikeluarkan. ADMIN_SECRET ada di Apps Script → ⚙️ Project Settings → Script Properties.',
+      form,
+      first ? null : [link('← Kembali ke login', () => renderLogin())]);
+  }
+
+  // Old Apps Script: the dashboard password is ADMIN_SECRET.
+  function renderLegacyLogin() {
+    const pass = input('Kata sandi (ADMIN_SECRET)', { type: 'password', autocomplete: 'current-password', required: true });
+    const form = authForm([pass], 'Masuk', async () => {
+      store.set(SECRET_KEY, pass.el.value.trim());
+      try {
+        busy('Masuk…');
+        await apiPost('login');
+        busy();
+        load();
+      } catch (e) {
+        store.del(SECRET_KEY);
+        throw new Error('Sandi salah atau koneksi gagal. Coba lagi.');
+      }
+    });
+    renderAuthCard('Dashboard Admin', 'Apps Script belum diperbarui, jadi login masih pakai ADMIN_SECRET. Setelah diperbarui (lihat SETUP.md), login berganti ke username dan password.', form);
+  }
+
+  function mailNote(mail) {
+    if (!mail) return '';
+    return mail.sent ? '. Notifikasi dikirim ke ' + mail.to.join(', ') : '. (Email notifikasi gagal dikirim: ' + mail.error + ')';
   }
 
   // Read the sheet as-is (drafts included). Older Apps Script deployments
@@ -394,8 +537,13 @@
           ),
           nav,
           h('div', { class: 'sidebar__foot' },
-            h('span', null, '🔒 Masuk'),
-            h('button', { onClick: () => { if (confirm('Keluar dari dashboard?')) { localStorage.removeItem(SECRET_KEY); start(); } } }, 'Keluar'),
+            h('span', { class: 'sidebar__user', title: 'Login sebagai' }, '👤 ' + (state.legacy ? 'admin' : (store.get(USER_KEY) || 'admin'))),
+            h('button', { onClick: () => {
+              if (!confirm('Keluar dari dashboard?')) return;
+              if (!state.legacy) apiPost('logout').catch(() => {});
+              signOut();
+              start();
+            } }, 'Keluar'),
           ),
         ),
         h('main', { class: 'main' }, renderSection()),
@@ -405,6 +553,7 @@
 
   function renderSection() {
     if (state.section === 'diagnosa') return renderDiagnosa();
+    if (state.section === 'akun') return renderAkun();
     if (state.loading) return h('p', null, 'Memuat data…');
     if (!state.content) return h('p', null, 'Data gagal dimuat. Buka menu "Cek Koneksi" untuk melihat penyebabnya.');
     const sec = SECTIONS.find((s) => s.key === state.section);
@@ -843,6 +992,90 @@
     return h('div', null, head, input, grid);
   }
 
+  /* ---------- pengaturan akun ---------- */
+  function renderAkun() {
+    const head = h('div', { class: 'page-head' }, h('div', null,
+      h('h1', null, 'Pengaturan Akun'),
+      h('p', null, 'Username, password, dan email yang menerima notifikasi keamanan.'),
+    ));
+    if (state.legacy) {
+      return h('div', null, head, h('div', { class: 'card notice' },
+        'Fitur akun butuh Apps Script versi terbaru. Ikuti langkah "Update Apps Script" di apps-script/SETUP.md, lalu muat ulang dashboard.'));
+    }
+    const wrap = h('div', null, head);
+    if (!state.account) {
+      wrap.append(h('p', null, 'Memuat data akun…'));
+      apiPost('account').then((r) => {
+        state.account = { username: r.username, email: r.email };
+        if (state.section === 'akun' && !state.editing) renderShell();
+      }).catch((e) => toast('Gagal memuat akun: ' + e.message, 'err'));
+      return wrap;
+    }
+    const acc = state.account;
+
+    const info = h('div', { class: 'card akun__info' },
+      h('div', null, h('small', null, 'Username'), h('b', null, acc.username)),
+      h('div', null, h('small', null, 'Email notifikasi'), h('b', null, acc.email || '(belum diisi)')),
+    );
+
+    const settingsForm = (title, sub, fields, submitText, onSubmit) => {
+      const err = h('p', { class: 'form-err', role: 'alert' });
+      const btn = h('button', { type: 'submit', class: 'btn' }, submitText);
+      const form = h('form', { class: 'card akun__form', onSubmit: async (e) => {
+        e.preventDefault();
+        err.textContent = '';
+        if (state.saving) return;
+        state.saving = true;
+        btn.disabled = true;
+        try { await onSubmit(); } catch (ex) { busy(); err.textContent = ex.message; toast(ex.message, 'err'); }
+        finally { state.saving = false; btn.disabled = false; }
+      } },
+        h('h2', null, title),
+        h('p', { class: 'editor__sub' }, sub),
+        ...fields.map((f) => f.node),
+        err,
+        h('div', { class: 'editor__foot' }, h('span'), btn),
+      );
+      return form;
+    };
+
+    const oldPw = input('Password lama', { type: 'password', autocomplete: 'current-password', required: true });
+    const newPw = input('Password baru (minimal 8 karakter)', { type: 'password', autocomplete: 'new-password', minlength: '8', required: true });
+    const newPw2 = input('Ulangi password baru', { type: 'password', autocomplete: 'new-password', required: true });
+    const pwForm = settingsForm('Ganti password',
+      'Setelah diganti, perangkat lain yang sedang login akan dikeluarkan, dan email pemberitahuan dikirim ke ' + (acc.email || 'email notifikasi') + '.',
+      [oldPw, newPw, newPw2], 'Ganti password', async () => {
+        if (newPw.el.value.length < 8) throw new Error('Password baru minimal 8 karakter.');
+        if (newPw.el.value !== newPw2.el.value) throw new Error('Ulangi password baru tidak sama.');
+        busy('Mengganti password…', 'Menyimpan lalu mengirim email pemberitahuan.');
+        const res = await apiPost('change-password', { oldPassword: oldPw.el.value, newPassword: newPw.el.value });
+        busy();
+        [oldPw, newPw, newPw2].forEach((f) => { f.el.value = ''; });
+        if (res.mail && !res.mail.sent) toast('Password diganti, tapi email notifikasi gagal dikirim: ' + res.mail.error, 'err');
+        else toast('Password berhasil diganti' + mailNote(res.mail), 'ok');
+      });
+
+    const user = input('Username', { type: 'text', autocomplete: 'username', autocapitalize: 'none', spellcheck: 'false', required: true, value: acc.username });
+    const mail = input('Email notifikasi', { type: 'email', autocomplete: 'email', required: true, value: acc.email });
+    const confirmPw = input('Password saat ini (untuk konfirmasi)', { type: 'password', autocomplete: 'current-password', required: true });
+    const accForm = settingsForm('Ganti username / email',
+      'Email ini menerima pemberitahuan saat password diganti dan kode untuk "Lupa password". Kalau email diganti, email lama dan baru sama-sama diberi tahu.',
+      [user, mail, confirmPw], 'Simpan perubahan', async () => {
+        busy('Menyimpan pengaturan akun…');
+        const res = await apiPost('change-account', { password: confirmPw.el.value, username: user.el.value, email: mail.el.value });
+        busy();
+        confirmPw.el.value = '';
+        if (res.unchanged) return toast('Tidak ada yang berubah');
+        state.account = { username: res.username, email: res.email };
+        store.set(USER_KEY, res.username);
+        renderShell();
+        toast('Pengaturan akun disimpan' + mailNote(res.mail), res.mail && !res.mail.sent ? 'err' : 'ok');
+      });
+
+    wrap.append(info, h('div', { class: 'akun__grid' }, pwForm, accForm));
+    return wrap;
+  }
+
   /* ---------- diagnostics ---------- */
   function renderDiagnosa() {
     const out = h('pre', { style: { whiteSpace: 'pre-wrap', wordBreak: 'break-word', background: '#111', color: '#dfe', padding: '1rem', borderRadius: '10px', fontSize: '.85rem', minHeight: '8rem', margin: '1rem 0 0' } }, 'Klik "Jalankan cek" untuk mulai.');
@@ -864,18 +1097,21 @@
       out.textContent = '';
       write('Dashboard: ' + location.href);
       write('API_URL : ' + API);
-      write('Sandi tersimpan: ' + (secret() ? 'ya (' + secret().length + ' karakter)' : 'TIDAK'));
+      write('Login: ' + (state.legacy ? 'mode lama (ADMIN_SECRET)' : token() ? 'ya, sebagai ' + store.get(USER_KEY) : 'TIDAK'));
       write('');
       const u = new URL(API); u.searchParams.set('action', 'content'); u.searchParams.set('fresh', '1');
       const pub = await raw('1. GET publik (dipakai website)', { method: 'GET' }, u.toString());
       if (pub && pub.pengumuman) write('  → pengumuman publik: ' + pub.pengumuman.length);
       write('');
-      const login = await raw('2. POST login', { method: 'POST', body: JSON.stringify({ action: 'login', secret: secret() }) });
-      if (login && login.ok) write('  → sandi diterima');
-      else if (login && login.error) write('  → ditolak: ' + login.error);
-      else if (login && login.pengumuman) write('  → ⚠ POST diperlakukan sebagai GET (body hilang)');
+      const au = new URL(API); au.searchParams.set('action', 'auth-status');
+      const st = await raw('2. GET status akun', { method: 'GET' }, au.toString());
+      if (st && st.ok) write('  → akun admin ' + (st.hasAccount ? 'sudah dibuat' : 'BELUM dibuat'));
+      else if (st && st.error === 'unknown action') write('  → ⚠ Apps Script versi lama (belum ada login username/password)');
       write('');
-      const adm = await raw('3. POST admin-content (versi Apps Script)', { method: 'POST', body: JSON.stringify({ action: 'admin-content', secret: secret() }) });
+      const cred = state.legacy ? { secret: secret() } : { token: token() };
+      const adm = await raw('3. POST admin-content (versi Apps Script)', { method: 'POST', body: JSON.stringify(Object.assign({ action: 'admin-content' }, cred)) });
+      if (adm && adm.error === 'unauthorized') write('  → ⚠ sesi login ditolak, coba Keluar lalu masuk lagi');
+      else if (adm && adm.pengumuman) write('  → ⚠ POST diperlakukan sebagai GET (body hilang)');
       if (adm && adm.meta) write('  → Apps Script versi ' + (adm.meta.version || '?') + ', isi Sheet: pengumuman=' + adm.content.pengumuman.length + ', video=' + adm.content.video.length);
       else if (adm && adm.error === 'unknown action') write('  → ⚠ Apps Script MASIH VERSI LAMA (belum Deploy → New version)');
       write('');

@@ -49,11 +49,15 @@ atau hubungkan repo ini ke GitHub Pages / Netlify / Vercel. Tidak ada perintah b
 
 ## Dashboard admin
 
-Konten berikut diatur dari dashboard di `/dashboard/` (login pakai ADMIN_SECRET), tanpa mengedit HTML:
+Konten berikut diatur dari dashboard di `/dashboard/` (login pakai username + password), tanpa mengedit HTML:
 pengumuman, guru & pegawai, ekstrakurikuler, kegiatan sekolah, fasilitas, album galeri, video kegiatan,
 dan brosur PPDB. Data disimpan di Google Sheet, foto di Google Drive, lewat Apps Script
 (lihat `apps-script/SETUP.md`). Halaman publik memuat data itu lewat `assets/js/content.js`; kalau
 dashboard belum berisi data atau tidak bisa dihubungi, isi HTML bawaan yang tampil.
+
+Akun login dibuat sekali pakai kunci darurat `ADMIN_SECRET`. Password, username, dan email notifikasi
+bisa diganti di menu **Pengaturan Akun**. Setiap password diganti, email pemberitahuan dikirim ke email
+notifikasi, dan **Lupa password?** mengirim kode reset ke email itu.
 
 Tambahkan `?debug=1` di alamat halaman (misalnya `pengumuman.html?debug=1`) untuk melihat apa yang
 dimuat dari dashboard. Menu **Cek Koneksi** di dashboard mengetes jalur ke Apps Script.

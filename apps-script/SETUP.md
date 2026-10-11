@@ -30,7 +30,8 @@ cukup copy-paste kode, klik beberapa tombol, lalu kirim satu URL ke gw.
    Folder: https://drive.google.com/drive/folders/1xyz...
    ```
 
-   **`ADMIN_SECRET` ini adalah kata sandi dashboard lo.** Catat baik-baik.
+   **`ADMIN_SECRET` ini adalah kunci darurat.** Dipakai sekali untuk membuat akun login
+   (username + password) di dashboard, dan nanti untuk reset akun kalau semua cara lain gagal.
 
 ## 3. Deploy sebagai Web App
 
@@ -40,7 +41,7 @@ cukup copy-paste kode, klik beberapa tombol, lalu kirim satu URL ke gw.
    - **Description**: `Dashboard SDN Ambarukmo v1`
    - **Execute as**: **Me** (`lottatores24@gmail.com`)
    - **Who has access**: **Anyone** (ini wajib supaya web publik bisa baca JSON;
-     tapi tulis tetap aman karena harus pakai ADMIN_SECRET)
+     tapi tulis tetap aman karena harus login)
 4. Klik **Deploy** → **Authorize access** (kalau diminta lagi).
 5. Muncul **Web app URL** yang berakhiran `/exec`. **Copy** URL itu.
 
@@ -51,10 +52,25 @@ Balas chat ini dengan 2 hal:
 - **ADMIN_SECRET** dari log tadi
 
 Begitu masuk, gw tulis setting-nya ke dashboard dan web publik, terus push.
-Lo tinggal buka dashboard, login pakai ADMIN_SECRET, dan langsung bisa edit konten.
 
-> Kalau mau ubah ADMIN_SECRET di kemudian hari: buka project Apps Script → ⚙️
-> **Project Settings → Script Properties** → ubah nilai `ADMIN_SECRET`.
+## 5. Buat akun login
+
+1. Buka dashboard. Karena belum ada akun, muncul layar **Buat akun admin**.
+2. Isi **kunci darurat** (ADMIN_SECRET), **username**, **email notifikasi**, dan **password** (minimal 8 karakter).
+3. Klik **Buat akun**. Email pemberitahuan dikirim ke email notifikasi.
+
+Setelah itu login cukup pakai username + password. Di menu **Pengaturan Akun** bisa ganti password,
+username, dan email notifikasi. Setiap password diganti, email notifikasi menerima pemberitahuan.
+
+### Lupa password
+
+- **Lupa password?** di halaman login → isi username → kode 6 angka dikirim ke email notifikasi
+  (berlaku 15 menit) → isi kode + password baru.
+- Kalau email itu juga tidak bisa dibuka: **Buat akun / kunci darurat** → isi ADMIN_SECRET → buat
+  username + password baru. Semua perangkat yang sedang login dikeluarkan.
+
+> ADMIN_SECRET bisa dilihat atau diganti di Apps Script → ⚙️ **Project Settings → Script Properties**.
+> Saat dashboard diserahkan ke sekolah, ganti nilainya dan berikan yang baru ke pihak sekolah.
 
 ## Update Apps Script (setiap kali Code.gs di repo berubah)
 
@@ -66,6 +82,18 @@ URL `/exec` **tidak berubah**, jadi dashboard dan web tidak perlu diubah.
 4. Di **Version**, pilih **New version** → **Deploy**.
 
 Kalau langkah 3–4 dilewati, Google tetap menjalankan kode lama walaupun editornya sudah berisi kode baru.
+
+### Update ke versi login username + password (versi 3)
+
+Versi ini mengirim email, jadi Google perlu izin baru **sebelum** deploy:
+
+1. Copy-paste `Code.gs` terbaru, simpan.
+2. Di dropdown fungsi (atas), pilih **`tesEmail`** → **Run** (▶) → izinkan seperti waktu `setup()`
+   (Review permissions → Advanced → Go to … → Allow). Email tes masuk ke akun Google pemilik script.
+3. Deploy → Manage deployments → ✎ → **New version** → Deploy.
+4. Buka dashboard, tekan Ctrl+Shift+R. Muncul layar **Buat akun admin** (lihat langkah 5 di atas).
+
+Sebelum langkah 3 selesai, dashboard tetap bisa dipakai dengan login lama (ADMIN_SECRET).
 
 ## Catatan
 

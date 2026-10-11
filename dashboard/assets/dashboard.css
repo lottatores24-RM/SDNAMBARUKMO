@@ -41,9 +41,21 @@ input,select,textarea{font:inherit;color:inherit}
 .login button[type=submit]{margin-top:.5rem;padding:.85rem;background:var(--primary);color:#fff;border:0;border-radius:10px;font-weight:700}
 .login button[type=submit]:hover{background:var(--primary-dark)}
 .login button[type=submit]:disabled{opacity:.6;cursor:wait}
-.login__err{min-height:1.25em;color:var(--danger);font-size:.95rem;text-align:center}
+.login__err{min-height:1.25em;margin:0;color:var(--danger);font-size:.95rem;text-align:center}
 .login__hint{margin-top:1.25rem;font-size:.85rem;color:var(--muted)}
 .login__hint code{background:var(--light);padding:.1rem .4rem;border-radius:4px}
+.login__primary{margin-top:.25rem;padding:.85rem;background:var(--primary);color:#fff;border:0;border-radius:10px;font-weight:700;width:100%}
+.login__primary:hover{background:var(--primary-dark)}
+.login__primary:disabled{opacity:.6;cursor:wait}
+.login .field{margin:0;gap:.35rem}
+.login input{width:100%}
+.login__links{display:flex;flex-wrap:wrap;justify-content:space-between;gap:.5rem 1rem;margin-top:1.25rem;padding-top:1rem;border-top:1px solid var(--border)}
+.login__link{background:none;border:0;padding:.25rem 0;color:var(--primary);font-weight:600;font-size:.92rem;cursor:pointer}
+.login__link:hover{text-decoration:underline}
+.pw{position:relative}
+.pw input{width:100%;padding-right:6.5rem}
+.pw__eye{position:absolute;right:.4rem;top:50%;transform:translateY(-50%);background:var(--light);border:0;border-radius:6px;padding:.35rem .6rem;font-size:.8rem;font-weight:700;color:var(--muted);cursor:pointer}
+.pw__eye:hover{color:var(--text)}
 
 /* ---------- layout ---------- */
 .app{display:grid;grid-template-columns:var(--sidebar-w) 1fr;min-height:100vh}
@@ -92,7 +104,7 @@ input,select,textarea{font:inherit;color:inherit}
 
 .field{display:grid;gap:.4rem;margin-bottom:1rem}
 .field label{font-weight:600;font-size:.92rem;color:var(--muted)}
-.field input[type=text],.field input[type=date],.field input[type=url],.field select,.field textarea{padding:.65rem .9rem;border:1px solid var(--border);border-radius:8px;background:#fff;width:100%}
+.field input[type=text],.field input[type=date],.field input[type=url],.field input[type=password],.field input[type=email],.field select,.field textarea{padding:.65rem .9rem;border:1px solid var(--border);border-radius:8px;background:#fff;width:100%}
 .field textarea{min-height:140px;resize:vertical;line-height:1.5;font-family:inherit}
 .field__hint{font-size:.85rem;color:var(--muted)}
 .field--inline{display:flex;align-items:center;gap:.5rem;margin:0}
@@ -180,3 +192,17 @@ input,select,textarea{font:inherit;color:inherit}
 .yt-input{display:grid;gap:.5rem}
 .yt-input__preview{aspect-ratio:16/9;background:#000;border-radius:10px;display:grid;place-items:center;color:#999;font-size:.9rem;overflow:hidden}
 .yt-input__preview img{width:100%;height:100%;object-fit:cover}
+
+/* ---------- pengaturan akun ---------- */
+.notice{padding:1rem 1.25rem}
+.akun__info{display:flex;flex-wrap:wrap;gap:1rem 2.5rem;padding:1.1rem 1.25rem;margin-bottom:1rem}
+.akun__info small{display:block;color:var(--muted);font-size:.8rem;text-transform:uppercase;letter-spacing:.06em}
+.akun__info b{font-size:1.05rem;word-break:break-all}
+.akun__grid{display:grid;gap:1rem;grid-template-columns:1fr;align-items:start}
+@media (min-width:1000px){.akun__grid{grid-template-columns:1fr 1fr}}
+.akun__grid .card+.card{margin-top:0}
+.akun__form{padding:1.25rem}
+.akun__form h2{font-size:1.15rem;margin-bottom:.25rem}
+.akun__form .editor__sub{margin-bottom:1rem}
+.form-err{min-height:1.25em;margin:0 0 .5rem;color:var(--danger);font-size:.92rem}
+.sidebar__user{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
