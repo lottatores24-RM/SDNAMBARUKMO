@@ -517,38 +517,79 @@
     }
   }
 
+  const NAV_GROUPS = [
+    ['Utama', ['overview']],
+    ['Konten website', ['pengumuman', 'guru', 'ekskul', 'kegiatan_sekolah', 'fasilitas', 'galeri', 'video', 'brosur_ppdb']],
+    ['Sistem', ['akun', 'diagnosa']],
+  ];
+  const userName = () => (state.legacy ? 'admin' : (store.get(USER_KEY) || 'admin'));
+  function go(key) {
+    state.section = key;
+    state.editing = null;
+    state.galeriAlbum = null;
+    document.body.classList.remove('nav-open');
+    renderShell();
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }
+  function logoutNow() {
+    if (!confirm('Keluar dari dashboard?')) return;
+    if (!state.legacy) apiPost('logout').catch(() => {});
+    signOut();
+    document.body.classList.remove('nav-open');
+    start();
+  }
+
   function renderShell() {
     const app = document.getElementById('app');
+    // Animate the content only when the view changes, not after every save.
+    const view = state.section + '|' + (state.editing ? 'edit' : '') + '|' + (state.galeriAlbum || '');
+    const entering = state._view !== view;
+    state._view = view;
+    const sidebarScroll = (app.querySelector('.sidebar__nav') || {}).scrollTop || 0;
     app.innerHTML = '';
-    const nav = h('nav');
-    SECTIONS.forEach((s) => {
-      const b = h('button', {
-        class: s.key === state.section ? 'active' : '',
-        onClick: () => { state.section = s.key; state.editing = null; renderShell(); },
-      }, icon(s.icon), s.title);
-      nav.append(b);
+
+    const nav = h('nav', { class: 'sidebar__nav', 'aria-label': 'Menu dashboard' });
+    NAV_GROUPS.forEach(([label, keys]) => {
+      nav.append(h('p', { class: 'nav-label' }, label));
+      keys.forEach((k) => {
+        const s = SECTIONS.find((x) => x.key === k);
+        if (!s) return;
+        const active = s.key === state.section;
+        nav.append(h('button', { type: 'button', class: 'nav-item' + (active ? ' active' : ''), 'aria-current': active ? 'page' : false, onClick: () => go(s.key) },
+          h('span', { class: 'nav-item__icon' }, icon(s.icon)), h('span', null, s.title)));
+      });
     });
-    app.append(
-      h('div', { class: 'app' },
-        h('aside', { class: 'sidebar' },
-          h('div', { class: 'sidebar__brand' },
-            h('img', { src: LOGO, alt: '' }),
-            h('div', null, h('b', null, 'SDN Ambarukmo'), h('small', null, 'Dashboard admin')),
-          ),
-          nav,
-          h('div', { class: 'sidebar__foot' },
-            h('span', { class: 'sidebar__user', title: 'Login sebagai' }, '👤 ' + (state.legacy ? 'admin' : (store.get(USER_KEY) || 'admin'))),
-            h('button', { onClick: () => {
-              if (!confirm('Keluar dari dashboard?')) return;
-              if (!state.legacy) apiPost('logout').catch(() => {});
-              signOut();
-              start();
-            } }, 'Keluar'),
-          ),
-        ),
-        h('main', { class: 'main' }, renderSection()),
+    const name = userName();
+    const sidebar = h('aside', { class: 'sidebar', id: 'sidebar' },
+      h('div', { class: 'sidebar__brand' },
+        h('img', { src: LOGO, alt: '' }),
+        h('div', null, h('b', null, 'SDN Ambarukmo'), h('small', null, 'Dashboard admin')),
+      ),
+      nav,
+      h('div', { class: 'sidebar__foot' },
+        h('span', { class: 'avatar', 'aria-hidden': 'true' }, name.charAt(0).toUpperCase()),
+        h('div', { class: 'sidebar__who' }, h('b', { class: 'sidebar__user', title: name }, name), h('small', null, 'Administrator')),
+        h('button', { type: 'button', class: 'icon-btn', title: 'Keluar', 'aria-label': 'Keluar dari dashboard', onClick: logoutNow },
+          icon('<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/>')),
       ),
     );
+    const topbar = h('header', { class: 'topbar' },
+      h('button', { type: 'button', class: 'icon-btn topbar__menu', 'aria-label': 'Buka menu', 'aria-controls': 'sidebar', onClick: () => document.body.classList.toggle('nav-open') },
+        icon('<path d="M4 6h16M4 12h16M4 18h16"/>')),
+      h('div', { class: 'topbar__brand' }, h('img', { src: LOGO, alt: '' }), h('b', null, 'SDN Ambarukmo')),
+      h('span', { class: 'avatar avatar--sm', title: name, 'aria-hidden': 'true' }, name.charAt(0).toUpperCase()),
+    );
+    app.append(
+      h('div', { class: 'app' },
+        sidebar,
+        h('div', { class: 'scrim', onClick: () => document.body.classList.remove('nav-open') }),
+        h('div', { class: 'app__main' },
+          topbar,
+          h('main', { class: 'main' + (entering ? ' is-entering' : '') }, renderSection()),
+        ),
+      ),
+    );
+    app.querySelector('.sidebar__nav').scrollTop = sidebarScroll;
   }
 
   function renderSection() {
@@ -565,8 +606,27 @@
   }
 
   /* ---------- overview ---------- */
+  function greeting() {
+    const hr = new Date().getHours();
+    return hr < 11 ? 'Selamat pagi' : hr < 15 ? 'Selamat siang' : hr < 18 ? 'Selamat sore' : 'Selamat malam';
+  }
+  // Numbers count up once when the overview first appears.
+  function countUp(el, to) {
+    if (!to || window.matchMedia('(prefers-reduced-motion: reduce)').matches) { el.textContent = to; return; }
+    const t0 = performance.now();
+    const dur = 700;
+    const step = (t) => {
+      const k = Math.min(1, (t - t0) / dur);
+      el.textContent = Math.round(to * (1 - Math.pow(1 - k, 3)));
+      if (k < 1) requestAnimationFrame(step);
+    };
+    el.textContent = '0';
+    requestAnimationFrame(step);
+  }
+
   function renderOverview() {
     const c = state.content;
+    const secIcon = (k) => (SECTIONS.find((s) => s.key === k) || {}).icon || '';
     const stats = [
       ['pengumuman', 'Pengumuman', c.pengumuman.length],
       ['guru', 'Guru & pegawai', c.guru.length],
@@ -575,29 +635,68 @@
       ['galeri', 'Album foto', c.galeri_album.length],
       ['video', 'Video kegiatan', c.video.length],
       ['fasilitas', 'Fasilitas', c.fasilitas.length],
+      ['galeri', 'Foto galeri', c.galeri_foto.length],
     ];
-    return h('div', null,
-      h('div', { class: 'page-head' },
-        h('div', null, h('h1', null, 'Dashboard'), h('p', null, 'Ringkasan konten yang sedang tampil di website.')),
-        h('div', { class: 'page-head__actions' },
-          window.SDN_SEED && missingCount() ? h('button', { class: 'btn', onClick: importSeed }, `⬇ Impor data awal (${missingCount()} belum ada)`) : null,
-          h('a', { class: 'btn btn--ghost', href: '/', target: '_blank', rel: 'noopener' }, 'Buka website'),
+    const animate = !state._counted;
+    state._counted = true;
+    const today = new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+    const quick = [
+      ['Tulis pengumuman', 'pengumuman', () => { go('pengumuman'); edit(SECTIONS.find((s) => s.key === 'pengumuman'), null); }],
+      ['Tambah foto galeri', 'galeri', () => go('galeri')],
+      ['Tambah video', 'video', () => { go('video'); edit(SECTIONS.find((s) => s.key === 'video'), null); }],
+      ['Ganti brosur PPDB', 'brosur_ppdb', () => go('brosur_ppdb')],
+    ];
+
+    const latest = c.pengumuman.slice().sort((a, b) => String(b.tanggal || '').localeCompare(String(a.tanggal || ''))).slice(0, 4);
+
+    return h('div', { class: 'ov' },
+      h('section', { class: 'welcome-card anim' },
+        h('div', null,
+          h('p', { class: 'welcome-card__date' }, today),
+          h('h1', null, greeting() + ', ', h('span', null, userName())),
+          h('p', { class: 'welcome-card__sub' }, 'Kelola isi website SD Negeri Ambarukmo dari sini. Setiap perubahan langsung tampil di website.'),
+        ),
+        h('div', { class: 'welcome-card__actions' },
+          window.SDN_SEED && missingCount() ? h('button', { class: 'btn btn--light', onClick: importSeed }, `Impor data awal (${missingCount()})`) : null,
+          h('a', { class: 'btn btn--light', href: '/', target: '_blank', rel: 'noopener' },
+            'Buka website', icon('<path d="M7 17 17 7"/><path d="M7 7h10v10"/>')),
         ),
       ),
-      state.backendOutdated ? h('div', { class: 'card', style: { padding: '1rem 1.25rem', marginBottom: '1.25rem', borderColor: '#e0b252', background: '#fff8e6' } },
-        h('b', null, '⚠ Apps Script perlu diperbarui. '),
-        'Kode Apps Script lo masih versi lama, jadi dashboard belum bisa mengecek isi Google Sheet. Ikuti langkah "Update Apps Script" di apps-script/SETUP.md.',
+      state.backendOutdated ? h('div', { class: 'card notice notice--warn anim' },
+        h('b', null, 'Apps Script perlu diperbarui. '),
+        'Kode Apps Script masih versi lama. Ikuti langkah "Update Apps Script" di apps-script/SETUP.md.',
       ) : null,
-      state.meta && state.meta.spreadsheetUrl ? h('p', { style: { marginBottom: '1rem', color: 'var(--muted)' } },
-        'Data tersimpan di ', h('a', { href: state.meta.spreadsheetUrl, target: '_blank', rel: 'noopener' }, 'Google Sheet'),
-        '. Foto yang diunggah lewat dashboard masuk ke ', h('a', { href: state.meta.folderUrl, target: '_blank', rel: 'noopener' }, 'folder Google Drive'),
-        '. Foto bawaan website (sebelum ada dashboard) tetap tersimpan di website, jadi tidak ada di folder itu.',
-      ) : null,
-      h('div', { class: 'overview' }, ...stats.map(([k, lbl, n]) => h('button', {
-        class: 'stat',
-        onClick: () => { state.section = k; renderShell(); },
-        style: { textAlign: 'left', border: 'none', cursor: 'pointer', width: '100%' },
-      }, h('b', null, n), h('span', null, lbl)))),
+      h('h2', { class: 'block-title anim' }, 'Ringkasan konten'),
+      h('div', { class: 'overview' }, ...stats.map(([k, lbl, n], i) => {
+        const num = h('b', null, String(n));
+        if (animate) countUp(num, n);
+        return h('button', { type: 'button', class: 'stat anim', style: { '--i': i }, onClick: () => go(k) },
+          h('span', { class: 'stat__icon' }, icon(secIcon(k))),
+          h('span', { class: 'stat__body' }, num, h('span', null, lbl)),
+          h('span', { class: 'stat__go', 'aria-hidden': 'true' }, icon('<path d="m9 18 6-6-6-6"/>')),
+        );
+      })),
+      h('div', { class: 'overview-cols' },
+        h('section', { class: 'card panel anim' },
+          h('div', { class: 'panel__head' }, h('h2', null, 'Aksi cepat')),
+          h('div', { class: 'quick' }, ...quick.map(([lbl, k, fn]) => h('button', { type: 'button', class: 'quick__item', onClick: fn },
+            h('span', { class: 'stat__icon' }, icon(secIcon(k))), h('span', null, lbl)))),
+        ),
+        h('section', { class: 'card panel anim' },
+          h('div', { class: 'panel__head' },
+            h('h2', null, 'Pengumuman terbaru'),
+            h('button', { type: 'button', class: 'link-btn', onClick: () => go('pengumuman') }, 'Lihat semua'),
+          ),
+          latest.length
+            ? h('ul', { class: 'mini-list' }, ...latest.map((r) => h('li', null,
+              h('span', { class: 'mini-list__date' }, fmtDate(r.tanggal) || '-'),
+              h('span', { class: 'mini-list__title' }, r.judul || '(tanpa judul)'),
+              r.draft ? h('span', { class: 'item__tag item__tag--draft' }, 'DRAFT') : null,
+            )))
+            : h('p', { class: 'panel__empty' }, 'Belum ada pengumuman.'),
+        ),
+      ),
     );
   }
 
@@ -1161,6 +1260,8 @@
       state.saving = false;
     }
   }
+
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') document.body.classList.remove('nav-open'); });
 
   start();
 })();
