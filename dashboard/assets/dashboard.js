@@ -265,7 +265,7 @@
     account: null,
   };
 
-  // Seed rows whose id isn't in the sheet yet (brosur: only when no brosur exists).
+  // Seed rows for tables that are still empty in the sheet (brosur: when no brosur photo exists).
   function missingSeed() {
     const seed = window.SDN_SEED || {};
     const c = state.content || {};
@@ -276,9 +276,9 @@
         if (!have.some((r) => r.foto)) out[table] = seed[table];
         continue;
       }
-      const ids = new Set(have.map((r) => String(r.id)));
-      const add = seed[table].filter((r) => !ids.has(String(r.id)));
-      if (add.length) out[table] = add;
+      // A table with any rows is managed in the dashboard: rows missing from
+      // it were deleted on purpose, so never offer to bring them back.
+      if (!have.length && seed[table].length) out[table] = seed[table];
     }
     return out;
   }
